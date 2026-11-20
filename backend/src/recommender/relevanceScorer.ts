@@ -111,18 +111,18 @@ export class RelevanceScorer {
     if (matchedVerticals.length === 0) {
       finalScore = 1;
       reason = 'Score 1: General destination with no explicit alignment to AI, video, marketing, SaaS, creators, or founders.';
-    } else if (matchedVerticals.length === 1 && maxHit < 2) {
+    } else if (maxHit < 2) {
       finalScore = 2;
       reason = `Score 2: Weak alignment to ${primaryVertical}; occasional relevant discussion detected.`;
-    } else if (matchedVerticals.length === 1 && maxHit >= 2) {
+    } else if (matchedVerticals.length === 1 && maxHit < 4) {
       finalScore = 3;
       reason = `Score 3: Moderate alignment to ${primaryVertical} with dedicated topic discussions and matching tags.`;
-    } else if (matchedVerticals.length >= 2 && maxHit < 4) {
-      finalScore = 4;
-      reason = `Score 4: High alignment across multiple core verticals (${matchedVerticals.join(', ')}) with active community interest.`;
-    } else {
+    } else if (matchedVerticals.length >= 2 && maxHit >= 4) {
       finalScore = 5;
       reason = `Score 5: Flagship destination highly specialized for ${matchedVerticals.join(' and ')} with strong keyword density and high target audience overlap.`;
+    } else {
+      finalScore = 4;
+      reason = `Score 4: High alignment across core vertical(s) (${matchedVerticals.join(', ')}) with active community interest.`;
     }
 
     return {

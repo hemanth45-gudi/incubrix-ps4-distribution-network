@@ -154,7 +154,17 @@ export class DestinationRecommender {
    * Evaluates precision@10 on the labelled ground-truth test dataset.
    */
   public async evaluatePrecisionAt10(): Promise<PrecisionEvalResult> {
-    const datasetPath = path.resolve(__dirname, 'evaluationDataset.json');
+    // Try multiple paths to locate the dataset JSON (src layout vs dist layout)
+    const candidates = [
+      path.resolve(process.cwd(), 'src/recommender/evaluationDataset.json'),
+      path.resolve(process.cwd(), 'backend/src/recommender/evaluationDataset.json'),
+      path.join(path.dirname(path.resolve('.')), 'src/recommender/evaluationDataset.json'),
+    ];
+    let datasetPath = candidates.find((p) => fs.existsSync(p));
+    if (!datasetPath) {
+      // Fallback: search upward from cwd
+      datasetPath = path.resolve(process.cwd(), 'src/recommender/evaluationDataset.json');
+    }
     const rawData = fs.readFileSync(datasetPath, 'utf-8');
     const cases = JSON.parse(rawData);
 
