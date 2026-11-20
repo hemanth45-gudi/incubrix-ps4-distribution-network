@@ -1,0 +1,704 @@
+openapi: 3.1.0
+info:
+  title: IncuBrix Long-Tail Destination Network API
+  version: 1.0.0
+  description: >
+    Production-oriented containerized connector service expanding IncuBrix content
+    distribution beyond major platforms into niche developer blogs, forums, open networks, and partner websites.
+servers:
+  - url: http://localhost:3001
+    description: Local development / simulation server
+
+paths:
+  /health:
+    get:
+      summary: Liveness Probe
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ready:
+    get:
+      summary: Deep Readiness Probe
+      responses:
+        '200':
+          description: All dependencies online.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: Backing dependencies degraded or offline.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+  # ==========================================
+  # CONNECTOR CONTRACT ROUTES
+  # ==========================================
+  /connector/v1/{connector_key}/validate:
+    post:
+      summary: Validate Content Against Destination Surface Limits
+      parameters:
+        - name: connector_key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateResponse'
+        '400':
+          $ref: '#/components/responses/StandardErrorResponse'
+
+  /connector/v1/{connector_key}/publish:
+    post:
+      summary: Low-Level Connector Publish
+      parameters:
+        - name: connector_key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishResponse'
+        '400':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '409':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '422':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '429':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '503':
+          $ref: '#/components/responses/StandardErrorResponse'
+
+  /connector/v1/{connector_key}/get_status:
+    post:
+      summary: Retrieve Live Post Status
+      parameters:
+        - name: connector_key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - platform_post_id
+              properties:
+                platform_post_id:
+                  type: string
+                connection:
+                  type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  live_url:
+                    type: string
+
+  /connector/v1/{connector_key}/delete:
+    post:
+      summary: Delete Post from Destination
+      parameters:
+        - name: connector_key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - platform_post_id
+              properties:
+                platform_post_id:
+                  type: string
+                connection:
+                  type: object
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+
+  # ==========================================
+  # CORE BUSINESS LOGIC API (/api/v1/...)
+  # ==========================================
+  /api/v1/publish:
+    post:
+      summary: Central Publishing Workflow
+      description: Evaluates posting rules, checks idempotency, runs connector, and stores publication record.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            example: tx_987410294
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - destination_id
+                - rendition
+              properties:
+                destination_id:
+                  type: string
+                  example: dest-discourse-001
+                rendition:
+                  $ref: '#/components/schemas/ContentRendition'
+                connection:
+                  type: object
+                async:
+                  type: boolean
+                  description: When true, returns HTTP 202 with job_id for background processing
+                callback_url:
+                  type: string
+                  format: uri
+                  description: Optional webhook URL signed with X-IncuBrix-Signature
+      responses:
+        '200':
+          description: Synchronous publication succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publication:
+                    $ref: '#/components/schemas/PublicationRecord'
+                  publish_result:
+                    $ref: '#/components/schemas/PublishResponse'
+                  manifest:
+                    $ref: '#/components/schemas/OutputManifest'
+        '202':
+          description: Accepted for asynchronous background processing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobQueuedResponse'
+        '400':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '409':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '422':
+          $ref: '#/components/responses/StandardErrorResponse'
+        '429':
+          $ref: '#/components/responses/StandardErrorResponse'
+
+  /api/v1/publications:
+    get:
+      summary: List Publications
+      parameters:
+        - name: destination_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicationRecord'
+
+  /api/v1/publications/{id}:
+    get:
+      summary: Get Publication Details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationRecord'
+        '404':
+          $ref: '#/components/responses/StandardErrorResponse'
+
+  /api/v1/publications/{id}/delete:
+    post:
+      summary: Delete Published Post and Update Record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publication_id:
+                    type: string
+                  deleted:
+                    type: boolean
+                  status:
+                    type: string
+
+  /api/v1/destinations:
+    get:
+      summary: List Destination Catalogue
+      parameters:
+        - name: platform_key
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DestinationRecord'
+    post:
+      summary: Add New Destination (Configuration Only)
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DestinationRecord'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationRecord'
+
+  /api/v1/destinations/{id}:
+    get:
+      summary: Get Destination by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DestinationRecord'
+        '404':
+          $ref: '#/components/responses/StandardErrorResponse'
+
+  /api/v1/destinations/{id}/rules:
+    get:
+      summary: Get Posting Rules and Recent Decisions for Destination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  destination_id:
+                    type: string
+                  frequency_cap:
+                    type: object
+                  self_promo_allowed:
+                    type: boolean
+                  link_policy:
+                    type: string
+                  recent_decisions:
+                    type: array
+                    items:
+                      type: object
+
+  /api/v1/rules/evaluate:
+    post:
+      summary: Dry-Run Rule Evaluation for Rendition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - destination_id
+                - rendition
+              properties:
+                destination_id:
+                  type: string
+                rendition:
+                  $ref: '#/components/schemas/ContentRendition'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passed:
+                    type: boolean
+                  action:
+                    type: string
+                  reasons:
+                    type: array
+                    items:
+                      type: string
+
+  /api/v1/jobs/{job_id}:
+    get:
+      summary: Check Background Job Status and Progress
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, running, succeeded, failed]
+                  progress:
+                    type: integer
+                    minimum: 0
+                    maximum: 100
+                  result:
+                    type: object
+                  error:
+                    type: string
+
+  /api/v1/storage/upload:
+    post:
+      summary: Upload Artifact or Validate Safe Public URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                content:
+                  type: string
+                mime_type:
+                  type: string
+                url:
+                  type: string
+                  description: Safe public URL (SSRF-protected)
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  filename:
+                    type: string
+                  download_url:
+                    type: string
+
+components:
+  responses:
+    StandardErrorResponse:
+      description: Standardized Error Schema
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StandardError'
+
+  schemas:
+    StandardError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - retryable
+          properties:
+            code:
+              type: string
+              enum:
+                - DEST_SPEC_VIOLATION
+                - DEST_RULE_FREQUENCY_CAP
+                - CONNECTION_AUTH_EXPIRED
+                - PLATFORM_RATE_LIMIT
+                - PLATFORM_QUOTA_EXHAUSTED
+                - PLATFORM_CONTENT_REJECTED
+                - PLATFORM_UNAVAILABLE
+                - CONNECTOR_DISABLED
+                - IDEMPOTENCY_CONFLICT
+                - NOT_FOUND
+                - INTERNAL_SERVER_ERROR
+            message:
+              type: string
+            retryable:
+              type: boolean
+            details:
+              type: object
+
+    ContentRendition:
+      type: object
+      required:
+        - body
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        canonical_url:
+          type: string
+        is_ai_generated:
+          type: boolean
+        ai_disclosure:
+          type: string
+
+    ValidateRequest:
+      type: object
+      required:
+        - rendition
+        - destination
+      properties:
+        rendition:
+          $ref: '#/components/schemas/ContentRendition'
+        destination:
+          type: object
+        connection:
+          type: object
+
+    ValidateResponse:
+      type: object
+      required:
+        - ok
+        - violations
+      properties:
+        ok:
+          type: boolean
+        violations:
+          type: array
+          items:
+            type: object
+
+    PublishRequest:
+      type: object
+      required:
+        - rendition
+        - destination
+      properties:
+        rendition:
+          $ref: '#/components/schemas/ContentRendition'
+        destination:
+          type: object
+        connection:
+          type: object
+
+    PublishResponse:
+      type: object
+      required:
+        - platform_post_id
+        - live_url
+        - status
+      properties:
+        platform_post_id:
+          type: string
+        live_url:
+          type: string
+        status:
+          type: string
+
+    PublicationRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        destination_id:
+          type: string
+        connector_key:
+          type: string
+        idempotency_key:
+          type: string
+        status:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        live_url:
+          type: string
+        platform_post_id:
+          type: string
+
+    DestinationRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        platform_key:
+          type: string
+        surface:
+          type: string
+        frequency_cap:
+          type: object
+        self_promo_allowed:
+          type: boolean
+        link_policy:
+          type: string
+        automation_allowed:
+          type: boolean
+
+    JobQueuedResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - progress
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          example: queued
+        progress:
+          type: integer
+          example: 0
+
+    OutputManifest:
+      type: object
+      required:
+        - manifest_version
+        - provider
+        - settings
+        - seed
+        - timings
+        - cost_estimate
+        - licence
+      properties:
+        manifest_version:
+          type: string
+        provider:
+          type: object
+          properties:
+            model_name:
+              type: string
+            version:
+              type: string
+            ai_assisted:
+              type: boolean
+            note:
+              type: string
+        timings:
+          type: object
+        cost_estimate:
+          type: object
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+        version:
+          type: string
+        uptime_seconds:
+          type: integer
+
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+        checks:
+          type: object

@@ -1,0 +1,75 @@
+[
+  {
+    "id": "batch-case-01-discourse",
+    "destination_id": "dest-discourse-001",
+    "rendition": {
+      "title": "Scaling Distributed Content Distribution Networks",
+      "body": "Detailed discussion on decentralized protocol syndication and long-tail networks.",
+      "tags": ["ai", "architecture", "distribution"]
+    },
+    "connection": {
+      "base_url": "http://localhost:3001/mock/discourse",
+      "api_key": "valid_disc_key",
+      "username": "admin"
+    },
+    "expected_status": 200
+  },
+  {
+    "id": "batch-case-02-devto",
+    "destination_id": "dest-devto-001",
+    "rendition": {
+      "title": "Building Idempotent Webhook Connectors in TypeScript",
+      "body": "Comprehensive tutorial covering SHA-256 payload canonicalization and HMAC signing.",
+      "tags": ["typescript", "nodejs", "webdev"],
+      "canonical_url": "https://incubrix.org/blog/idempotent-connectors"
+    },
+    "connection": {
+      "base_url": "http://localhost:3001/mock/devto",
+      "api_key": "devto_valid_key"
+    },
+    "expected_status": 200
+  },
+  {
+    "id": "batch-case-03-ghost",
+    "destination_id": "dest-ghost-001",
+    "rendition": {
+      "title": "IncuBrix 2026 Engineering Roadmap",
+      "body": "Our long-tail publisher network is now running natively across 500+ independent publications."
+    },
+    "connection": {
+      "base_url": "http://localhost:3001/mock/ghost",
+      "api_key": "ghost_admin_key"
+    },
+    "expected_status": 200
+  },
+  {
+    "id": "batch-case-04-webhook",
+    "destination_id": "dest-webhook-001",
+    "rendition": {
+      "body": "Syndicated B2B news release delivered over HMAC-SHA256 authenticated webhook stream."
+    },
+    "connection": {
+      "webhook_url": "http://localhost:3001/mock/webhook/receiver",
+      "secret": "mock-webhook-secret-32-bytes-long!"
+    },
+    "expected_status": 200
+  },
+  {
+    "id": "batch-case-05-lemmy-selfpromo-blocked",
+    "destination_id": "dest-lemmy-001",
+    "rendition": {
+      "title": "Special discount for all members",
+      "body": "Click here to buy now and get 50% off right now!"
+    },
+    "expected_status": 422
+  },
+  {
+    "id": "batch-case-06-assisted-route",
+    "destination_id": "dest-assisted-001",
+    "rendition": {
+      "title": "Community Ask Me Anything Session",
+      "body": "Please join us for an engineering Q&A on architecture design."
+    },
+    "expected_status": 400
+  }
+]

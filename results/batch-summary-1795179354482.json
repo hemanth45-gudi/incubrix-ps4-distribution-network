@@ -1,0 +1,256 @@
+{
+  "executed_at": "2026-11-20T12:55:54.482Z",
+  "total_items": 6,
+  "successes": 4,
+  "failures": 2,
+  "items": [
+    {
+      "index": 1,
+      "id": "batch-case-01-discourse",
+      "destination_id": "dest-discourse-001",
+      "idempotency_key": "batch-idem-batch-case-01-discourse-212b524d",
+      "http_status": 401,
+      "expected_status": 200,
+      "status": "FAILED",
+      "response": {
+        "error": {
+          "code": "CONNECTION_AUTH_EXPIRED",
+          "message": "Discourse API responded with HTTP 401",
+          "retryable": false,
+          "details": {
+            "error": "Invalid API key or token expired"
+          }
+        }
+      },
+      "duration_ms": 103
+    },
+    {
+      "index": 2,
+      "id": "batch-case-02-devto",
+      "destination_id": "dest-devto-001",
+      "idempotency_key": "batch-idem-batch-case-02-devto-c3903724",
+      "http_status": 401,
+      "expected_status": 200,
+      "status": "FAILED",
+      "response": {
+        "error": {
+          "code": "CONNECTION_AUTH_EXPIRED",
+          "message": "Dev.to API responded with HTTP 401",
+          "retryable": false,
+          "details": {
+            "error": "unauthorized",
+            "status": 401
+          }
+        }
+      },
+      "duration_ms": 822
+    },
+    {
+      "index": 3,
+      "id": "batch-case-03-ghost",
+      "destination_id": "dest-ghost-001",
+      "idempotency_key": "batch-idem-batch-case-03-ghost-9a1f8742",
+      "http_status": 200,
+      "expected_status": 200,
+      "status": "SUCCESS",
+      "response": {
+        "publication": {
+          "id": "pub-1795179354469-527",
+          "destination_id": "dest-ghost-001",
+          "connector_key": "ghost",
+          "idempotency_key": "batch-idem-batch-case-03-ghost-9a1f8742",
+          "status": "published",
+          "title": "IncuBrix 2026 Engineering Roadmap",
+          "body": "Our long-tail publisher network is now running natively across 500+ independent publications.",
+          "live_url": "https://blog.example.com/p/ghost_9489",
+          "platform_post_id": "ghost_9489",
+          "error_code": null,
+          "error_message": null,
+          "is_test": false,
+          "created_at": "2026-11-20T12:55:54.469Z",
+          "updated_at": "2026-11-20T12:55:54.469Z"
+        },
+        "publish_result": {
+          "platform_post_id": "ghost_9489",
+          "live_url": "https://blog.example.com/p/ghost_9489",
+          "status": "published"
+        },
+        "manifest": {
+          "manifest_version": "1.0.0",
+          "provider": {
+            "model_name": "none (deterministic code)",
+            "version": "1.0.0",
+            "ai_assisted": false,
+            "note": "Deterministic operation: no AI model was used for execution"
+          },
+          "settings": {
+            "simulation_mode": true,
+            "environment": "development",
+            "connector_key": "ghost",
+            "destination_id": "dest-ghost-001"
+          },
+          "seed": 742308,
+          "timings": {
+            "started_at": "2026-11-20T12:55:54.465Z",
+            "finished_at": "2026-11-20T12:55:54.469Z",
+            "duration_ms": 4
+          },
+          "cost_estimate": {
+            "currency": "USD",
+            "amount": 0,
+            "description": "Zero marginal cost in local / simulation mode"
+          },
+          "warnings": [],
+          "licence": {
+            "type": "Apache-2.0 / MIT",
+            "commercial_usable": true,
+            "notice": "IncuBrix Content Distribution Network — Shipped for commercial evaluation"
+          }
+        }
+      },
+      "duration_ms": 8
+    },
+    {
+      "index": 4,
+      "id": "batch-case-04-webhook",
+      "destination_id": "dest-webhook-001",
+      "idempotency_key": "batch-idem-batch-case-04-webhook-caaf8be5",
+      "http_status": 200,
+      "expected_status": 200,
+      "status": "SUCCESS",
+      "response": {
+        "publication": {
+          "id": "pub-1795179354476-886",
+          "destination_id": "dest-webhook-001",
+          "connector_key": "webhook",
+          "idempotency_key": "batch-idem-batch-case-04-webhook-caaf8be5",
+          "status": "published",
+          "title": null,
+          "body": "Syndicated B2B news release delivered over HMAC-SHA256 authenticated webhook stream.",
+          "live_url": "https://partner.example.org/events/wh_event_6254",
+          "platform_post_id": "wh_event_6254",
+          "error_code": null,
+          "error_message": null,
+          "is_test": false,
+          "created_at": "2026-11-20T12:55:54.476Z",
+          "updated_at": "2026-11-20T12:55:54.476Z"
+        },
+        "publish_result": {
+          "platform_post_id": "wh_event_6254",
+          "live_url": "https://partner.example.org/events/wh_event_6254",
+          "status": "published"
+        },
+        "manifest": {
+          "manifest_version": "1.0.0",
+          "provider": {
+            "model_name": "none (deterministic code)",
+            "version": "1.0.0",
+            "ai_assisted": false,
+            "note": "Deterministic operation: no AI model was used for execution"
+          },
+          "settings": {
+            "simulation_mode": true,
+            "environment": "development",
+            "connector_key": "webhook",
+            "destination_id": "dest-webhook-001"
+          },
+          "seed": 432489,
+          "timings": {
+            "started_at": "2026-11-20T12:55:54.471Z",
+            "finished_at": "2026-11-20T12:55:54.476Z",
+            "duration_ms": 5
+          },
+          "cost_estimate": {
+            "currency": "USD",
+            "amount": 0,
+            "description": "Zero marginal cost in local / simulation mode"
+          },
+          "warnings": [],
+          "licence": {
+            "type": "Apache-2.0 / MIT",
+            "commercial_usable": true,
+            "notice": "IncuBrix Content Distribution Network — Shipped for commercial evaluation"
+          }
+        }
+      },
+      "duration_ms": 6
+    },
+    {
+      "index": 5,
+      "id": "batch-case-05-lemmy-selfpromo-blocked",
+      "destination_id": "dest-lemmy-001",
+      "idempotency_key": "batch-idem-batch-case-05-lemmy-selfpromo-blocked-a2d27b72",
+      "http_status": 422,
+      "expected_status": 422,
+      "status": "EXPECTED_ERROR",
+      "response": {
+        "error": {
+          "code": "DEST_SPEC_VIOLATION",
+          "message": "Publication blocked by community posting rule: Self-promotion is prohibited on 'Lemmy Open Tech'. Detected promotional trigger: \"buy now\"",
+          "retryable": false,
+          "details": {
+            "reasons": [
+              "Self-promotion is prohibited on 'Lemmy Open Tech'. Detected promotional trigger: \"buy now\""
+            ],
+            "decisions": [
+              {
+                "rule_name": "AUTOMATION_PERMISSION",
+                "pass": true,
+                "reason": "Automated publishing is permitted by community guidelines",
+                "action_taken": "allow"
+              },
+              {
+                "rule_name": "FREQUENCY_CAP",
+                "pass": true,
+                "reason": "Within limits (0/2 in 7d)",
+                "action_taken": "allow"
+              },
+              {
+                "rule_name": "SELF_PROMOTION_POLICY",
+                "pass": false,
+                "reason": "Self-promotion is prohibited on 'Lemmy Open Tech'. Detected promotional trigger: \"buy now\"",
+                "action_taken": "block"
+              },
+              {
+                "rule_name": "LINK_POLICY",
+                "pass": true,
+                "reason": "Links are permitted",
+                "action_taken": "allow"
+              },
+              {
+                "rule_name": "AI_DISCLOSURE_POLICY",
+                "pass": true,
+                "reason": "AI disclosure not required or content is non-AI",
+                "action_taken": "allow"
+              }
+            ]
+          }
+        }
+      },
+      "duration_ms": 2
+    },
+    {
+      "index": 6,
+      "id": "batch-case-06-assisted-route",
+      "destination_id": "dest-assisted-001",
+      "idempotency_key": "batch-idem-batch-case-06-assisted-route-bf8af5d4",
+      "http_status": 400,
+      "expected_status": 400,
+      "status": "EXPECTED_ERROR",
+      "response": {
+        "error": {
+          "code": "DEST_SPEC_VIOLATION",
+          "message": "Automated publishing blocked: Destination 'High-Touch Subreddit Community' explicitly forbids automated bots/publishing. Requires human assisted posting.. Use assisted connector instead.",
+          "retryable": false,
+          "details": {
+            "reasons": [
+              "Destination 'High-Touch Subreddit Community' explicitly forbids automated bots/publishing. Requires human assisted posting."
+            ],
+            "action": "route_assisted"
+          }
+        }
+      },
+      "duration_ms": 3
+    }
+  ]
+}

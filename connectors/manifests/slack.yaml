@@ -1,0 +1,29 @@
+key: slack
+version: 1.0.0
+tier: bridge
+auth: bearer_token
+surfaces:
+  - key: message
+    content_types:
+      - text
+      - blocks
+      - link
+    spec:
+      title_max_chars: 150
+      body_max_chars: 40000
+      links_allowed: true
+rate_limits:
+  per_connection:
+    requests: 60
+    per_seconds: 60
+capabilities:
+  - publish
+  - status
+  - delete
+error_map:
+  "401": CONNECTION_AUTH_EXPIRED
+  "403": CONNECTION_AUTH_EXPIRED
+  "404": DEST_SPEC_VIOLATION
+  "429": PLATFORM_RATE_LIMIT
+  "500": PLATFORM_UNAVAILABLE
+instance_param: webhook_url

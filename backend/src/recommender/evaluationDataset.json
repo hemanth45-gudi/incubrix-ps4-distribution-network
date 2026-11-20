@@ -1,0 +1,62 @@
+[
+  {
+    "id": "eval-case-001",
+    "name": "AI Developer Platform Post",
+    "query": {
+      "title": "Building Autonomous Multi-Agent Workflows with TypeScript",
+      "body": "A technical tutorial on building autonomous LLM agents in Node.js with LangChain, memory management, and structured tool calling.",
+      "tags": ["ai", "developers", "saas"],
+      "is_commercial": false
+    },
+    "expected_verticals": ["ai", "saas"],
+    "expected_relevant_keywords": ["ai", "developer", "saas", "tech"]
+  },
+  {
+    "id": "eval-case-002",
+    "name": "Bootstrapped SaaS Founder Retrospective",
+    "query": {
+      "title": "How We Bootstrapped Our B2B SaaS to $10k MRR",
+      "body": "Detailed revenue breakdown, churn metrics, and founder lessons building in public over the past 12 months with no venture capital.",
+      "tags": ["founders", "saas", "marketing"],
+      "is_commercial": false
+    },
+    "expected_verticals": ["founders", "saas"],
+    "expected_relevant_keywords": ["founder", "saas", "startup", "bootstrapp"]
+  },
+  {
+    "id": "eval-case-003",
+    "name": "Open-Source Video Streaming Infrastructure",
+    "query": {
+      "title": "Decentralized Video Distribution with PeerTube and ActivityPub",
+      "body": "Exploring federated video streaming nodes, self-hosted media servers, and video encoding workflows for creators and developers.",
+      "tags": ["video", "creators", "open-source"],
+      "is_commercial": false
+    },
+    "expected_verticals": ["video", "creators"],
+    "expected_relevant_keywords": ["video", "creator", "media", "stream"]
+  },
+  {
+    "id": "eval-case-004",
+    "name": "Content Creator Growth and Copywriting Guide",
+    "query": {
+      "title": "The Technical Writer's Playbook: Growing a High-Conversion Newsletter",
+      "body": "Strategies for independent writers and creators to build distribution channels, optimize SEO, and monetize through community subscriptions.",
+      "tags": ["creators", "marketing"],
+      "is_commercial": false
+    },
+    "expected_verticals": ["creators", "marketing"],
+    "expected_relevant_keywords": ["creator", "marketing", "content", "writ"]
+  },
+  {
+    "id": "eval-case-005",
+    "name": "AI Model Fine-Tuning Guide",
+    "query": {
+      "title": "Fine-Tuning Open Source LLMs for Production Code Generation",
+      "body": "Benchmarks, LoRA hyperparameters, dataset cleaning techniques, and inference latency comparisons for production software teams.",
+      "tags": ["ai", "saas", "open-source"],
+      "is_commercial": false
+    },
+    "expected_verticals": ["ai", "saas"],
+    "expected_relevant_keywords": ["ai", "software", "tech", "developer"]
+  }
+]

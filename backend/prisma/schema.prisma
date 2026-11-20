@@ -1,0 +1,142 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Destination {
+  id                  String             @id @default(uuid())
+  name                String
+  url                 String
+  platform_key        String
+  surface             String             @default("default")
+  category            String?
+  audience_tags       String[]           @default([])
+  language            String             @default("en")
+  geo                 String?
+  est_audience        Int?
+  rules_url           String?
+  frequency_cap       Json?
+  self_promo_allowed  Boolean            @default(true)
+  link_policy         String             @default("allowed")
+  disclosure_required Boolean            @default(false)
+  automation_allowed  Boolean            @default(true)
+  connector_key       String
+  relevance_score     Float              @default(3.0)
+  relevance_reason    String?
+  level               String             @default("L0")
+  status              String             @default("active")
+  last_certified_at   DateTime?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  publications        Publication[]
+  certifications      CertificationRun[]
+  posting_rules       PostingRuleDecision[]
+
+  @@unique([url, platform_key])
+}
+
+model PostingRuleDecision {
+  id             String      @id @default(uuid())
+  destination_id String
+  rule_name      String
+  pass           Boolean
+  reason         String
+  action_taken   String
+  timestamp      DateTime    @default(now())
+
+  destination    Destination @relation(fields: [destination_id], references: [id], onDelete: Cascade)
+}
+
+model Publication {
+  id               String              @id @default(uuid())
+  destination_id   String
+  connector_key    String
+  idempotency_key  String              @unique
+  status           String
+  title            String?
+  body             String
+  live_url         String?
+  platform_post_id String?
+  error_code       String?
+  error_message    String?
+  is_test          Boolean             @default(false)
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+
+  destination      Destination         @relation(fields: [destination_id], references: [id], onDelete: Cascade)
+  metrics          PublicationMetric[]
+}
+
+model PublicationMetric {
+  id             String      @id @default(uuid())
+  publication_id String
+  views          Int         @default(0)
+  likes          Int         @default(0)
+  comments       Int         @default(0)
+  shares         Int         @default(0)
+  clicks         Int         @default(0)
+  saves          Int?
+  watch_time_s   Int?
+  collected_at   DateTime    @default(now())
+
+  publication    Publication @relation(fields: [publication_id], references: [id], onDelete: Cascade)
+}
+
+model CertificationRun {
+  id                  String      @id @default(uuid())
+  destination_id      String
+  connector_key       String
+  status              String
+  is_simulated        Boolean     @default(false)
+  started_at          DateTime    @default(now())
+  finished_at         DateTime?
+  test_input          Json?
+  validation_response Json?
+  publish_response    Json?
+  status_response     Json?
+  delete_response     Json?
+  failure_reason      String?
+  evidence_ref        String?
+
+  destination         Destination @relation(fields: [destination_id], references: [id], onDelete: Cascade)
+}
+
+model CatalogueImport {
+  id             String    @id @default(uuid())
+  filename       String
+  total_rows     Int       @default(0)
+  valid_rows     Int       @default(0)
+  duplicate_rows Int       @default(0)
+  invalid_rows   Int       @default(0)
+  status         String
+  error_report   Json?
+  created_at     DateTime  @default(now())
+  completed_at   DateTime?
+}
+
+model IdempotencyRecord {
+  id            String   @id @default(uuid())
+  key           String   @unique
+  request_hash  String
+  status        String
+  response_code Int?
+  response_body Json?
+  created_at    DateTime @default(now())
+  expires_at    DateTime
+}
+
+model BackgroundJob {
+  id         String   @id @default(uuid())
+  job_type   String
+  status     String   @default("queued")
+  progress   Int      @default(0)
+  result     Json?
+  error      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}

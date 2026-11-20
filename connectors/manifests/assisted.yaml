@@ -1,0 +1,18 @@
+key: assisted
+version: 1.0.0
+tier: assisted
+auth: none
+surfaces:
+  - key: assist_pack
+    content_types:
+      - text
+      - media_assets
+      - checklist
+    spec:
+      title_max_chars: 300
+      body_max_chars: 40000
+      links_allowed: true
+capabilities:
+  - build_assist_pack
+error_map:
+  "400": DEST_SPEC_VIOLATION
