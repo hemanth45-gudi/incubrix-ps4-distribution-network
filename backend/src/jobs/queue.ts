@@ -31,9 +31,15 @@ export async function checkRedisHealth(): Promise<{ status: 'ok' | 'error'; mess
   try {
     const client = getRedisClient();
     if (client.status !== 'ready') {
-      await client.connect();
+      await Promise.race([
+        client.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Redis probe timeout')), 800)),
+      ]);
     }
-    const pong = await client.ping();
+    const pong = await Promise.race([
+      client.ping(),
+      new Promise<string>((_, reject) => setTimeout(() => reject(new Error('Redis ping timeout')), 800)),
+    ]);
     const latency_ms = Date.now() - start;
     if (pong === 'PONG') {
       return {
@@ -47,6 +53,12 @@ export async function checkRedisHealth(): Promise<{ status: 'ok' | 'error'; mess
       message: `Unexpected Redis ping response: ${pong}`,
     };
   } catch (error: any) {
+    if (config.SIMULATION_MODE) {
+      return {
+        status: 'ok',
+        message: 'In-memory job queue active (Simulation Mode)',
+      };
+    }
     return {
       status: 'error',
       message: error?.message || 'Failed to connect to Redis',

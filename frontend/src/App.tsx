@@ -1111,8 +1111,17 @@ export default function App() {
   const checkStatus = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [h, r] = await Promise.all([fetchHealth(), fetchReadiness()]);
-      setHealth(h); setReadiness(r);
+      const h = await fetchHealth();
+      setHealth(h);
+      try {
+        const r = await fetchReadiness();
+        setReadiness(r);
+        if (r.status === 'degraded' && !h.simulation_mode) {
+          setError('Backend services degraded: check PostgreSQL / Redis connectivity');
+        }
+      } catch (rErr: unknown) {
+        console.warn('Readiness probe warning:', rErr);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to connect to backend service');
     } finally { setLoading(false); }

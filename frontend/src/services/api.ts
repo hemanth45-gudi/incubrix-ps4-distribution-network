@@ -44,7 +44,14 @@ export interface ReadinessResponse {
 }
 
 export const fetchHealth = (): Promise<HealthResponse> => apiFetch('/health');
-export const fetchReadiness = (): Promise<ReadinessResponse> => apiFetch('/ready');
+
+export const fetchReadiness = async (): Promise<ReadinessResponse> => {
+  const res = await fetch('/ready');
+  if (res.status === 200 || res.status === 503) {
+    return res.json();
+  }
+  throw new Error(`Readiness probe failed with HTTP ${res.status}`);
+};
 
 // ─── Destinations ─────────────────────────────────────────────
 export interface Destination {

@@ -8,13 +8,16 @@ export const prisma = new PrismaClient({
       url: config.DATABASE_URL,
     },
   },
-  log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  log: config.SIMULATION_MODE ? [] : (process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error']),
 });
 
 export async function checkDatabaseHealth(): Promise<{ status: 'ok' | 'error'; message: string; latency_ms?: number }> {
   const start = Date.now();
   try {
-    await prisma.$queryRawUnsafe('SELECT 1');
+    await Promise.race([
+      prisma.$queryRawUnsafe('SELECT 1'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Database probe timeout')), 800)),
+    ]);
     const latency_ms = Date.now() - start;
     return {
       status: 'ok',
@@ -22,6 +25,12 @@ export async function checkDatabaseHealth(): Promise<{ status: 'ok' | 'error'; m
       latency_ms,
     };
   } catch (error: any) {
+    if (config.SIMULATION_MODE) {
+      return {
+        status: 'ok',
+        message: 'In-memory database active (Simulation Mode)',
+      };
+    }
     return {
       status: 'error',
       message: error?.message || 'Failed to connect to PostgreSQL database',

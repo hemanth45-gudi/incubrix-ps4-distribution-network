@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { checkDatabaseHealth } from '../database/client.js';
 import { checkRedisHealth } from '../jobs/queue.js';
+import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 
 export const healthRouter = Router();
@@ -18,7 +19,7 @@ healthRouter.get('/health', (req: Request, res: Response) => {
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     uptime_seconds,
-    simulation_mode: process.env.SIMULATION_MODE === 'true',
+    simulation_mode: config.SIMULATION_MODE,
   });
 });
 
@@ -42,7 +43,9 @@ healthRouter.get('/ready', async (req: Request, res: Response) => {
       redis: redisCheck,
       storage: {
         status: 'ok',
-        message: 'Storage subsystem configured',
+        message: config.SIMULATION_MODE
+          ? 'Local artifact storage active (Simulation Mode)'
+          : 'Storage subsystem configured',
       },
     },
   };
