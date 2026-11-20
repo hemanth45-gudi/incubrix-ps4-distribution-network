@@ -1,32 +1,65 @@
-# IncuBrix — Distribution: Long-Tail Destination Network
+# 🌐 IncuBrix — Distribution: Long-Tail Destination Network
 
-> Production-oriented, containerised connector service expanding IncuBrix content distribution beyond major social platforms into niche communities, developer blogs, federated forums, open video networks, and partner websites.
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Production-brightgreen)
+![Connectors](https://img.shields.io/badge/Connectors-9-orange)
+![Destinations](https://img.shields.io/badge/Destinations-150-blueviolet)
+
+> 🚀 Production-oriented, containerised connector service expanding IncuBrix content distribution beyond major social platforms into niche communities, developer blogs, federated forums, open video networks, and partner websites.
 
 ---
 
-## Project Overview
+## 📌 Project Overview
 
 The **Long-Tail Destination Network** is an automated, resilient content distribution engine that publishes, certifies, monitors, and tailors content across nine non-traditional connector platforms (Discourse, Lemmy, Dev.to, Ghost, HMAC-signed Webhooks, Assisted, Hashnode, Slack, and PeerTube). It manages a 150-destination catalogue of real community platforms and exposes a full REST API backed by PostgreSQL, Redis, BullMQ, and MinIO (S3-compatible).
 
 ---
 
-## Stack
+## ⭐ Key Features
 
-| Layer | Technology |
-|:--- |:--- |
-| Runtime | Node.js 20 |
-| Language | TypeScript 5 (ESM, strict) |
-| Web Framework | Express 4 |
-| ORM / DB | Prisma + PostgreSQL 16 |
-| Background Jobs | BullMQ + Redis 7 |
-| Object Storage | MinIO (S3-compatible, simulated in dev) |
-| Frontend | React 18, Vite 5, Tailwind CSS 3 |
-| Testing | Vitest + Supertest |
-| Containerisation | Docker Compose |
+- 🔌 **9 platform connectors** — Discourse, Lemmy, Dev.to, Ghost, Webhook, Assisted, Hashnode, Slack, PeerTube
+- 🗂️ **150-destination catalogue** of real community platforms
+- ⚡ **Sync & async publishing** with BullMQ background jobs and progress tracking
+- 🛡️ **Rules engine** — frequency caps, self-promo, link policy, AI disclosure, automation checks
+- 🤖 **AI-assisted rule capture** with human confirmation
+- 🔁 **Idempotency** using SHA-256 recursive hashing
+- 🔄 **Exponential backoff retries + circuit breaker**
+- 🚦 **Connector kill-switch** for instant platform isolation
+- ✂️ **Platform-aware content tailoring**
+- 🎯 **Destination recommender** with Precision@10 evaluation
+- 📅 **30-day automatic recertification**
+- 📥 **Bulk CSV catalogue import** (1000 rows in under 5 minutes)
+- 📊 **Normalised metrics** — views, likes, comments, shares, clicks
+- 🔒 **SSRF-safe storage** via MinIO / S3
+- 🧪 **Simulation mode** with in-process mock platforms
+- 🖥️ **10-tab React dashboard**
+- 🐳 **Docker Compose** full-stack deployment
 
 ---
 
-## Monorepo Structure
+## 🛠️ Stack
+
+| Layer | Technology |
+|:--- |:--- |
+| ⚙️ Runtime | Node.js 20 |
+| 📝 Language | TypeScript 5 (ESM, strict) |
+| 🌐 Web Framework | Express 4 |
+| 🗄️ ORM / DB | Prisma + PostgreSQL 16 |
+| ⏱️ Background Jobs | BullMQ + Redis 7 |
+| 📦 Object Storage | MinIO (S3-compatible, simulated in dev) |
+| 🎨 Frontend | React 18, Vite 5, Tailwind CSS 3 |
+| 🧪 Testing | Vitest + Supertest |
+| 🐳 Containerisation | Docker Compose |
+
+---
+
+## 📁 Monorepo Structure
 
 ```
 incubrix-ps4/
@@ -128,28 +161,28 @@ incubrix-ps4/
 
 ---
 
-## Quick Start (Development)
+## 🚀 Quick Start (Development)
 
-### Prerequisites
+### ✅ Prerequisites
 
-- Node.js 20+
-- PostgreSQL 16 running locally (or Docker Compose)
-- Redis 7 running locally (or Docker Compose)
+- 🟢 Node.js 20+
+- 🐘 PostgreSQL 16 running locally (or Docker Compose)
+- 🔴 Redis 7 running locally (or Docker Compose)
 
-### 1. Install dependencies
+### 1️⃣ Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure environment
+### 2️⃣ Configure environment
 
 ```bash
 cp .env.example .env
 # Edit .env as needed (see Environment Variables section)
 ```
 
-### 3. Start the backend API server
+### 3️⃣ Start the backend API server
 
 ```bash
 npm run dev --workspace=@incubrix/backend
@@ -157,7 +190,7 @@ npm run dev --workspace=@incubrix/backend
 
 The API server starts at `http://localhost:3001` with `SIMULATION_MODE=true` by default — no real external API calls are made.
 
-### 4. Start the frontend dashboard
+### 4️⃣ Start the frontend dashboard
 
 ```bash
 npm run dev --workspace=@incubrix/frontend
@@ -165,7 +198,7 @@ npm run dev --workspace=@incubrix/frontend
 
 The React dashboard starts at `http://localhost:3000` and proxies all API requests to `http://localhost:3001`.
 
-### 5. Seed the 150-destination catalogue
+### 5️⃣ Seed the 150-destination catalogue
 
 ```bash
 npm run seed --workspace=@incubrix/backend
@@ -173,7 +206,7 @@ npm run seed --workspace=@incubrix/backend
 
 ---
 
-## Docker Compose (Full Stack)
+## 🐳 Docker Compose (Full Stack)
 
 > [!IMPORTANT]
 > Requires Docker Desktop installed and running. All services including PostgreSQL, Redis, MinIO, the backend, and the frontend are orchestrated together.
@@ -184,13 +217,13 @@ docker compose up -d
 
 | Service | Port | Description |
 |:--- |:--- |:--- |
-| `postgres` | 5432 | PostgreSQL 16 database |
-| `redis` | 6379 | Redis 7 for BullMQ queues |
-| `minio` | 9000 / 9001 | S3-compatible object storage |
-| `backend` | 3001 | Express API server |
-| `frontend` | 3000 | React dashboard (nginx) |
+| 🐘 `postgres` | 5432 | PostgreSQL 16 database |
+| 🔴 `redis` | 6379 | Redis 7 for BullMQ queues |
+| 📦 `minio` | 9000 / 9001 | S3-compatible object storage |
+| ⚙️ `backend` | 3001 | Express API server |
+| 🖥️ `frontend` | 3000 | React dashboard (nginx) |
 
-Stop everything:
+🛑 Stop everything:
 
 ```bash
 docker compose down -v
@@ -198,7 +231,7 @@ docker compose down -v
 
 ---
 
-## Environment Variables
+## 🔐 Environment Variables
 
 Create a `.env` file at the project root (see `.env.example` for a full template):
 
@@ -239,50 +272,50 @@ MOCK_WEBHOOK_RECEIVER_URL=http://localhost:4005
 
 ---
 
-## Simulation Mode
+## 🧪 Simulation Mode
 
 When `SIMULATION_MODE=true`, **no real external API calls are made**. All nine connectors point to in-process mock servers mounted under `/mock/*` routes:
 
 | Mock Route | Simulated Platform |
 |:--- |:--- |
-| `/mock/discourse/*` | Discourse forum API |
-| `/mock/lemmy/*` | Lemmy federated API |
-| `/mock/devto/*` | Dev.to articles API |
-| `/mock/ghost/*` | Ghost Admin API |
-| `/mock/webhook/receiver` | HMAC webhook receiver |
+| 💬 `/mock/discourse/*` | Discourse forum API |
+| 🐭 `/mock/lemmy/*` | Lemmy federated API |
+| 👩‍💻 `/mock/devto/*` | Dev.to articles API |
+| 👻 `/mock/ghost/*` | Ghost Admin API |
+| 🪝 `/mock/webhook/receiver` | HMAC webhook receiver |
 
-The mocks support configurable error states: rate limits, auth expiry, platform unavailability, and timeouts — enabling full end-to-end testing without real credentials.
+⚠️ The mocks support configurable error states: rate limits, auth expiry, platform unavailability, and timeouts — enabling full end-to-end testing without real credentials.
 
 ---
 
-## Nine Connectors
+## 🔌 Nine Connectors
 
 | Connector Key | Platform | Capabilities |
 |:--- |:--- |:--- |
-| `discourse` | Discourse Forums | validate, publish, get_status, delete, fetch_metrics |
-| `lemmy` | Lemmy (Fediverse) | validate, publish, get_status, delete |
-| `devto` | Dev.to | validate, publish, get_status, delete |
-| `ghost` | Ghost CMS | validate, publish, get_status, delete |
-| `webhook` | Generic HMAC Webhook | validate, publish, get_status, delete |
-| `assisted` | Manual/Assisted Posting | validate, build_assist_pack (no automated publish) |
-| `hashnode` | Hashnode | validate, publish, get_status, delete |
-| `slack` | Slack | validate, publish, get_status, delete |
-| `peertube` | PeerTube (Fediverse Video) | validate, publish, get_status, delete |
+| 💬 `discourse` | Discourse Forums | validate, publish, get_status, delete, fetch_metrics |
+| 🐭 `lemmy` | Lemmy (Fediverse) | validate, publish, get_status, delete |
+| 👩‍💻 `devto` | Dev.to | validate, publish, get_status, delete |
+| 👻 `ghost` | Ghost CMS | validate, publish, get_status, delete |
+| 🪝 `webhook` | Generic HMAC Webhook | validate, publish, get_status, delete |
+| 🙋 `assisted` | Manual/Assisted Posting | validate, build_assist_pack (no automated publish) |
+| ✍️ `hashnode` | Hashnode | validate, publish, get_status, delete |
+| 💼 `slack` | Slack | validate, publish, get_status, delete |
+| 🎬 `peertube` | PeerTube (Fediverse Video) | validate, publish, get_status, delete |
 
 ---
 
-## API Endpoints
+## 📡 API Endpoints
 
-All management routes are under `/api/v1/`. All `POST` endpoints require an `Idempotency-Key` header.
+All management routes are under `/api/v1/`. 🔑 All `POST` endpoints require an `Idempotency-Key` header.
 
-### Infrastructure
+### 🏥 Infrastructure
 
 | Method | Endpoint | Description |
 |:--- |:--- |:--- |
 | `GET` | `/health` | Liveness probe — returns `{ status: "ok" }` |
 | `GET` | `/ready` | Readiness probe — checks database, redis, and storage |
 
-### Destinations
+### 📍 Destinations
 
 | Method | Endpoint | Description |
 |:--- |:--- |:--- |
@@ -294,7 +327,7 @@ All management routes are under `/api/v1/`. All `POST` endpoints require an `Ide
 | `GET` | `/api/v1/destinations/{id}/rules` | Get posting rules + recent decisions |
 | `PUT` | `/api/v1/destinations/{id}/rules` | Update posting rules |
 
-### Publishing
+### 📤 Publishing
 
 | Method | Endpoint | Description |
 |:--- |:--- |:--- |
@@ -304,7 +337,7 @@ All management routes are under `/api/v1/`. All `POST` endpoints require an `Ide
 | `POST` | `/api/v1/publications/{id}/delete` | Delete from platform + database |
 | `GET` | `/api/v1/jobs/{job_id}` | Poll async job status (0–100 progress) |
 
-### Rules Engine
+### 📜 Rules Engine
 
 | Method | Endpoint | Description |
 |:--- |:--- |:--- |
@@ -313,7 +346,7 @@ All management routes are under `/api/v1/`. All `POST` endpoints require an `Ide
 | `POST` | `/api/v1/rules/confirm` | Human confirmation of AI-captured draft rules |
 | `GET` | `/api/v1/rules/drafts` | List unconfirmed AI rule drafts |
 
-### Advanced Features
+### ✨ Advanced Features
 
 | Method | Endpoint | Description |
 |:--- |:--- |:--- |
@@ -329,7 +362,7 @@ All management routes are under `/api/v1/`. All `POST` endpoints require an `Ide
 | `GET` | `/api/v1/storage/{id}` | Download stored artifact |
 | `POST` | `/api/v1/assisted/build-pack` | Generate human-posting assist pack |
 
-### Connector HTTP Contract
+### 🔗 Connector HTTP Contract
 
 | Method | Endpoint | Description |
 |:--- |:--- |:--- |
@@ -340,7 +373,7 @@ All management routes are under `/api/v1/`. All `POST` endpoints require an `Ide
 
 ---
 
-## Testing
+## 🧪 Testing
 
 ```bash
 # Run all backend tests
@@ -351,19 +384,20 @@ npm run test --workspace=@incubrix/backend -- --coverage
 ```
 
 The test suite comprises **12 test files** covering:
-- Connector contract tests (Discourse, Lemmy, Dev.to, Ghost, Webhook, Assisted) — full publish/status/delete lifecycle
-- Rules engine unit tests (all rule types: frequency cap, self-promo, link policy, AI disclosure, automation)
-- Idempotency tests (SHA-256 conflict detection, duplicate prevention)
-- Job manager tests (async enqueue, progress tracking, HMAC callbacks)
-- Publishing workflow integration tests
-- Retry and circuit breaker tests
-- Storage service tests (upload, SSRF validation)
-- Manifest and registry tests (connector kill-switch)
-- Content tailorer and relevance scorer tests
+
+- 🔌 Connector contract tests (Discourse, Lemmy, Dev.to, Ghost, Webhook, Assisted) — full publish/status/delete lifecycle
+- 📜 Rules engine unit tests (all rule types: frequency cap, self-promo, link policy, AI disclosure, automation)
+- 🔁 Idempotency tests (SHA-256 conflict detection, duplicate prevention)
+- ⏱️ Job manager tests (async enqueue, progress tracking, HMAC callbacks)
+- 📤 Publishing workflow integration tests
+- 🔄 Retry and circuit breaker tests
+- 📦 Storage service tests (upload, SSRF validation)
+- 🚦 Manifest and registry tests (connector kill-switch)
+- ✂️ Content tailorer and relevance scorer tests
 
 ---
 
-## CLI Batch Runner
+## 🖥️ CLI Batch Runner
 
 Process publication suites from JSON input files:
 
@@ -375,30 +409,30 @@ npm run batch-runner
 npx tsx scripts/batch-runner/index.ts --input path/to/my-batch.json
 ```
 
-Results are written to `results/batch-summary-{timestamp}.json`.
+📄 Results are written to `results/batch-summary-{timestamp}.json`.
 
 ---
 
-## Architecture Decisions
+## 🏗️ Architecture Decisions
 
-### Idempotency (SHA-256 Recursive Hashing)
+### 🔁 Idempotency (SHA-256 Recursive Hashing)
 Every `POST /api/v1/publish` and `POST /connector/v1/:key/publish` accepts an `Idempotency-Key` header. The system computes a SHA-256 hash of the full request payload and stores the first response. Identical keys with matching payloads return the cached response (`HTTP 200`). Identical keys with *different* payloads are rejected with `HTTP 409 Conflict`.
 
-### Rules Engine
+### 🛡️ Rules Engine
 Pre-publication checks run on every publish request: frequency caps, self-promotion policy, link restrictions, AI disclosure requirements, and automation permissions. Each decision is logged to the `RuleDecision` table. Failed rules produce `allow`, `block`, `reschedule`, or `route_assisted` actions.
 
-### Circuit Breaker
+### ⚡ Circuit Breaker
 The retry service tracks consecutive failures per connector. After 5 consecutive platform-side failures (`PLATFORM_UNAVAILABLE`), the circuit opens and subsequent requests fail immediately without hitting the platform, protecting both the platform and the client.
 
-### Connector Registry Kill-Switch
+### 🚦 Connector Registry Kill-Switch
 The runtime `ConnectorRegistry` supports `enable()` and `disable()` operations. Disabling a connector returns `CONNECTOR_DISABLED` immediately, enabling instantaneous platform isolation without a code deploy.
 
-### Configuration-Driven Multi-Instance
+### ⚙️ Configuration-Driven Multi-Instance
 One connector implementation serves unlimited community instances through configuration parameters (`base_url`, `webhook_url`, `api_key`). Two Discourse forums, for example, share one `DiscourseConnector` class with different connection objects.
 
 ---
 
-## Error Response Format
+## ❌ Error Response Format
 
 All errors conform to a standard envelope:
 
@@ -415,11 +449,15 @@ All errors conform to a standard envelope:
 
 | Code | Retryable | Cause |
 |:--- |:--- |:--- |
-| `DEST_SPEC_VIOLATION` | No | Content breaks destination format limits |
-| `DEST_RULE_FREQUENCY_CAP` | Yes | Frequency cap; retry after window |
-| `CONNECTION_AUTH_EXPIRED` | No | Token revoked or expired |
-| `PLATFORM_RATE_LIMIT` | Yes | HTTP 429; back off with `Retry-After` |
-| `PLATFORM_QUOTA_EXHAUSTED` | Yes | Daily quota exhausted |
-| `PLATFORM_CONTENT_REJECTED` | No | Spam filter or banned phrases |
-| `PLATFORM_UNAVAILABLE` | Yes | 5xx or timeout; circuit breaker active |
-| `CONNECTOR_DISABLED` | No | Kill-switch active |
+| `DEST_SPEC_VIOLATION` | ❌ No | Content breaks destination format limits |
+| `DEST_RULE_FREQUENCY_CAP` | ✅ Yes | Frequency cap; retry after window |
+| `CONNECTION_AUTH_EXPIRED` | ❌ No | Token revoked or expired |
+| `PLATFORM_RATE_LIMIT` | ✅ Yes | HTTP 429; back off with `Retry-After` |
+| `PLATFORM_QUOTA_EXHAUSTED` | ✅ Yes | Daily quota exhausted |
+| `PLATFORM_CONTENT_REJECTED` | ❌ No | Spam filter or banned phrases |
+| `PLATFORM_UNAVAILABLE` | ✅ Yes | 5xx or timeout; circuit breaker active |
+| `CONNECTOR_DISABLED` | ❌ No | Kill-switch active |
+
+---
+
+<p align="center">Made with ❤️ by the IncuBrix team</p>
