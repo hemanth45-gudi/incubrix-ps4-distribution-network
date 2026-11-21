@@ -436,6 +436,7 @@ apiV1Router.post('/api/v1/catalogue/import', async (req: Request, res: Response,
       imported_at: now,
       created_at: now.toISOString(),
       errors: formattedErrors,
+      row_results: result.row_results,
     });
 
     return res.status(200).json({

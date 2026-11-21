@@ -266,20 +266,39 @@ export const recertifyDue = (forceAll: boolean = true): Promise<RecertifyResult>
   });
 
 // ─── Catalogue Import ─────────────────────────────────────────
+export interface RowResult {
+  row_number: number;
+  status: 'imported' | 'duplicate' | 'invalid';
+  name?: string;
+  url?: string;
+  platform?: string;
+  destination_id?: string;
+  field?: string;
+  reason?: string;
+}
+
 export interface ImportSummary {
+  import_id?: string;
+  filename?: string;
   total_rows: number;
   valid_rows: number;
   duplicate_rows: number;
   invalid_rows: number;
   duration_ms: number;
-  errors?: Array<{ row: number; error: string }>;
+  errors?: Array<{ row: number; error: string; url?: string; field?: string }>;
+  row_errors?: Array<{ row_number: number; reason: string; url?: string; field?: string }>;
+  row_results?: RowResult[];
+  imported_destinations?: Destination[];
 }
 
-export const importCatalogue = (csvText: string): Promise<ImportSummary> =>
+export const importCatalogue = (csvText: string, filename?: string): Promise<ImportSummary> =>
   apiFetch('/api/v1/catalogue/import', {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: csvText,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      csv_content: csvText,
+      filename: filename || 'catalogue.csv',
+    }),
   });
 
 export interface ImportRecord {

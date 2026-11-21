@@ -386,5 +386,37 @@ Missing URL Name,,discourse,discourse,software,dev,1000,en`;
       expect(res.body.errors[2].row).toBe(4);
       expect(res.body.errors[2].error).toContain('Missing required field');
     });
+
+    it('supports importing raw CSV text with text/plain Content-Type and returns row_results', async () => {
+      const rawCsv = `name,url,platform_key,category
+Raw Body Destination,https://rawbody.example.com,discourse,software`;
+
+      const res = await request(app)
+        .post('/api/v1/catalogue/import')
+        .set('Content-Type', 'text/plain')
+        .send(rawCsv);
+
+      expect(res.status).toBe(200);
+      expect(res.body.total_rows).toBe(1);
+      expect(res.body.valid_rows).toBe(1);
+      expect(res.body.row_results).toHaveLength(1);
+      expect(res.body.row_results[0].status).toBe('imported');
+      expect(res.body.row_results[0].name).toBe('Raw Body Destination');
+    });
+
+    it('rejects CSV with missing required headers and returns header error on row 1', async () => {
+      const badHeaderCsv = `invalid_col1,invalid_col2
+val1,val2`;
+
+      const res = await request(app)
+        .post('/api/v1/catalogue/import')
+        .send({ csv_content: badHeaderCsv, filename: 'bad_headers.csv' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.valid_rows).toBe(0);
+      expect(res.body.row_errors).toHaveLength(1);
+      expect(res.body.row_errors[0].row_number).toBe(1);
+      expect(res.body.row_errors[0].field).toBe('headers');
+    });
   });
 });

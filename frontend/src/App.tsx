@@ -821,6 +821,7 @@ function CertificationTab() {
 // ─── TAB: Catalogue Import ────────────────────────────────────
 function ImportTab() {
   const [csvText, setCsvText] = useState('');
+  const [fileName, setFileName] = useState('');
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -836,9 +837,19 @@ function ImportTab() {
     if (!csvText.trim()) return;
     setLoading(true); setError(null); setImportResult(null);
     try {
-      const r = await importCatalogue(csvText);
+      const r = await importCatalogue(csvText, fileName || 'pasted_catalogue.csv');
       setImportResult(r);
-      setHistory((prev) => [{ id: Date.now().toString(), created_at: new Date().toISOString(), total_rows: r.total_rows, valid_rows: r.valid_rows, invalid_rows: r.invalid_rows, duplicate_rows: r.duplicate_rows }, ...prev]);
+      setHistory((prev) => [
+        {
+          id: r.import_id || Date.now().toString(),
+          created_at: new Date().toISOString(),
+          total_rows: r.total_rows,
+          valid_rows: r.valid_rows,
+          invalid_rows: r.invalid_rows,
+          duplicate_rows: r.duplicate_rows,
+        },
+        ...prev,
+      ]);
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Import failed'); }
     finally { setLoading(false); }
   };
@@ -846,8 +857,9 @@ function ImportTab() {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (ev) => setCsvText(ev.target?.result as string || '');
+    reader.onload = (ev) => setCsvText((ev.target?.result as string) || '');
     reader.readAsText(file);
   };
 
@@ -857,7 +869,9 @@ function ImportTab() {
         <SectionHeader title="CSV Import" />
         <form onSubmit={handleImport} className="space-y-4">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-400">Upload CSV File</label>
+            <label className="text-xs font-medium text-slate-400">
+              Upload CSV File {fileName && <span className="text-indigo-400 font-mono text-xs">({fileName})</span>}
+            </label>
             <input type="file" accept=".csv,text/plain" onChange={handleFile}
               className="text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-700 file:text-slate-200 hover:file:bg-slate-600 cursor-pointer" />
           </div>
@@ -880,7 +894,48 @@ function ImportTab() {
             <StatCard label="Invalid" value={importResult.invalid_rows} icon={X} color="rose" />
           </div>
           <p className="text-xs text-slate-400">Duration: {importResult.duration_ms}ms</p>
-          {importResult.errors && importResult.errors.length > 0 && (
+
+          {/* Row-Wise Results */}
+          {importResult.row_results && importResult.row_results.length > 0 && (
+            <div className="mt-5 space-y-2">
+              <p className="text-sm font-semibold text-white">Row-Wise Results ({importResult.row_results.length} rows)</p>
+              <div className="overflow-x-auto rounded-lg border border-slate-800">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-slate-400 bg-slate-900/60 uppercase border-b border-slate-800">
+                      {['Row', 'Destination', 'URL', 'Platform', 'Status', 'Details'].map((h) => (
+                        <th key={h} className="px-3 py-2">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {importResult.row_results.map((row, i) => {
+                      const statusColor = row.status === 'imported' ? 'green' : row.status === 'duplicate' ? 'yellow' : 'red';
+                      return (
+                        <tr key={i} className="hover:bg-slate-800/20 text-slate-300">
+                          <td className="px-3 py-2 font-mono text-slate-400">Row {row.row_number}</td>
+                          <td className="px-3 py-2 font-medium text-slate-200">{row.name || '—'}</td>
+                          <td className="px-3 py-2 font-mono text-[11px] text-slate-400 max-w-[200px] truncate" title={row.url}>
+                            {row.url || '—'}
+                          </td>
+                          <td className="px-3 py-2 text-slate-400">{row.platform || '—'}</td>
+                          <td className="px-3 py-2">
+                            <Badge label={row.status} color={statusColor} />
+                          </td>
+                          <td className="px-3 py-2 text-slate-400">
+                            {row.reason || (row.status === 'imported' ? 'Successfully imported' : '—')}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Fallback to legacy row errors if row_results not present */}
+          {(!importResult.row_results || importResult.row_results.length === 0) && importResult.errors && importResult.errors.length > 0 && (
             <div className="mt-4">
               <p className="text-sm font-semibold text-white mb-2">Row Errors</p>
               <div className="space-y-1">

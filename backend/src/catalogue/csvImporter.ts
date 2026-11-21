@@ -2,6 +2,17 @@ import { URL } from 'url';
 import { dbRepository, DestinationRecord } from '../database/repository.js';
 import { relevanceScorer } from '../recommender/relevanceScorer.js';
 
+export interface RowImportResult {
+  row_number: number;
+  status: 'imported' | 'duplicate' | 'invalid';
+  name?: string;
+  url?: string;
+  platform?: string;
+  destination_id?: string;
+  field?: string;
+  reason?: string;
+}
+
 export interface CsvImportResult {
   import_id: string;
   filename: string;
@@ -16,6 +27,7 @@ export interface CsvImportResult {
     field?: string;
     reason: string;
   }>;
+  row_results: RowImportResult[];
   imported_destinations: DestinationRecord[];
 }
 
@@ -80,27 +92,50 @@ export class CsvCatalogueImporter {
         invalid_rows: 0,
         duration_ms: Date.now() - startedAt,
         row_errors: [{ row_number: 1, reason: 'CSV is empty or missing data rows' }],
+        row_results: [{ row_number: 1, status: 'invalid', reason: 'CSV is empty or missing data rows' }],
         imported_destinations: [],
       };
     }
 
-    // Parse header
+    // Parse and validate headers
     const headers = this.parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
-    const nameIdx = headers.indexOf('name');
-    const urlIdx = headers.indexOf('url');
-    const platformIdx = headers.indexOf('platform_key');
-    const connectorIdx = headers.indexOf('connector_key');
-    const categoryIdx = headers.indexOf('category');
-    const audienceIdx = headers.indexOf('est_audience');
-    const tagsIdx = headers.indexOf('audience_tags');
-    const langIdx = headers.indexOf('language');
+    const findIndex = (aliases: string[]) => headers.findIndex((h) => aliases.includes(h));
+
+    const nameIdx = findIndex(['name', 'destination_name', 'destination', 'title']);
+    const urlIdx = findIndex(['url', 'endpoint', 'link', 'destination_url']);
+    const platformIdx = findIndex(['platform_key', 'platform']);
+    const connectorIdx = findIndex(['connector_key', 'connector']);
+    const categoryIdx = findIndex(['category', 'vertical', 'type']);
+    const audienceIdx = findIndex(['est_audience', 'audience', 'reach', 'members']);
+    const tagsIdx = findIndex(['audience_tags', 'tags', 'topics']);
+    const langIdx = findIndex(['language', 'lang']);
+
+    if (nameIdx === -1 || urlIdx === -1) {
+      const missing: string[] = [];
+      if (nameIdx === -1) missing.push("'name'");
+      if (urlIdx === -1) missing.push("'url'");
+      const reason = `Invalid CSV headers: missing required column header ${missing.join(' and ')}. Required headers are 'name' and 'url'`;
+      return {
+        import_id: importId,
+        filename,
+        total_rows: lines.length - 1,
+        valid_rows: 0,
+        duplicate_rows: 0,
+        invalid_rows: lines.length - 1,
+        duration_ms: Date.now() - startedAt,
+        row_errors: [{ row_number: 1, field: 'headers', reason }],
+        row_results: [{ row_number: 1, status: 'invalid', field: 'headers', reason }],
+        imported_destinations: [],
+      };
+    }
 
     const rowErrors: CsvImportResult['row_errors'] = [];
+    const rowResults: RowImportResult[] = [];
     const seenInCsv = new Set<string>();
     const existingList = await dbRepository.listDestinations();
     const existingKeys = new Set(existingList.map((d) => `${d.platform_key}::${this.normalizeUrl(d.url)}`));
 
-    const toInsert: Partial<DestinationRecord>[] = [];
+    const toInsert: Array<{ row_number: number; data: Partial<DestinationRecord> }> = [];
     let duplicateCount = 0;
     let invalidCount = 0;
 
@@ -108,26 +143,48 @@ export class CsvCatalogueImporter {
       const line = lines[i];
       const cols = this.parseCsvLine(line);
 
-      const name = nameIdx !== -1 ? cols[nameIdx] : cols[0];
-      const rawUrl = urlIdx !== -1 ? cols[urlIdx] : cols[1];
-      const platformKey = (platformIdx !== -1 ? cols[platformIdx] : cols[2] || 'discourse').toLowerCase().trim();
-      const connectorKey = connectorIdx !== -1 ? cols[connectorIdx] : platformKey;
+      const name = nameIdx !== -1 ? cols[nameIdx] : '';
+      const rawUrl = urlIdx !== -1 ? cols[urlIdx] : '';
+      const platformKey = (platformIdx !== -1 && cols[platformIdx] ? cols[platformIdx] : 'discourse').toLowerCase().trim();
+      const connectorKey = connectorIdx !== -1 && cols[connectorIdx] ? cols[connectorIdx] : platformKey;
 
-      // Validate presence
+      // Validate presence of required fields
       if (!name || !rawUrl) {
         invalidCount++;
-        rowErrors.push({ row_number: i + 1, reason: 'Missing required field: name or url' });
+        const missingField = !name && !rawUrl ? 'name and url' : !name ? 'name' : 'url';
+        const reason = `Missing required field: ${missingField}`;
+        rowErrors.push({ row_number: i + 1, field: missingField, reason });
+        rowResults.push({
+          row_number: i + 1,
+          status: 'invalid',
+          name: name || undefined,
+          url: rawUrl || undefined,
+          field: missingField,
+          reason,
+        });
         continue;
       }
 
-      // Validate URL syntax
+      // Validate URL syntax and protocol
       let normalizedUrl: string;
       try {
         normalizedUrl = this.normalizeUrl(rawUrl);
-        new URL(normalizedUrl);
+        const parsed = new URL(normalizedUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname) {
+          throw new Error('Protocol must be http or https with valid host');
+        }
       } catch {
         invalidCount++;
-        rowErrors.push({ row_number: i + 1, url: rawUrl, field: 'url', reason: 'Malformed URL' });
+        const reason = 'Malformed URL: must be a valid http or https URL';
+        rowErrors.push({ row_number: i + 1, url: rawUrl, field: 'url', reason });
+        rowResults.push({
+          row_number: i + 1,
+          status: 'invalid',
+          name,
+          url: rawUrl,
+          field: 'url',
+          reason,
+        });
         continue;
       }
 
@@ -135,10 +192,20 @@ export class CsvCatalogueImporter {
       const uniqueKey = `${platformKey}::${normalizedUrl}`;
       if (seenInCsv.has(uniqueKey) || existingKeys.has(uniqueKey)) {
         duplicateCount++;
+        const reason = `Duplicate detected for platform '${platformKey}' and URL '${normalizedUrl}'`;
         rowErrors.push({
           row_number: i + 1,
           url: normalizedUrl,
-          reason: `Duplicate detected for platform '${platformKey}' and URL '${normalizedUrl}'`,
+          field: 'url',
+          reason,
+        });
+        rowResults.push({
+          row_number: i + 1,
+          status: 'duplicate',
+          name,
+          url: normalizedUrl,
+          platform: platformKey,
+          reason,
         });
         continue;
       }
@@ -155,7 +222,7 @@ export class CsvCatalogueImporter {
         : ['general'];
 
       const estAudience = audienceIdx !== -1 && cols[audienceIdx] ? parseInt(cols[audienceIdx], 10) || 1000 : 1000;
-      const category = categoryIdx !== -1 ? cols[categoryIdx] : 'technology';
+      const category = categoryIdx !== -1 && cols[categoryIdx] ? cols[categoryIdx] : 'technology';
       const language = langIdx !== -1 && cols[langIdx] ? cols[langIdx] : 'en';
 
       // Enrich destination with relevance score
@@ -166,27 +233,41 @@ export class CsvCatalogueImporter {
       });
 
       toInsert.push({
-        name,
-        url: normalizedUrl,
-        platform_key: platformKey,
-        connector_key: connectorKey,
-        surface: 'default',
-        category,
-        audience_tags: tags,
-        language,
-        est_audience: estAudience,
-        relevance_score: relevance.score,
-        relevance_reason: relevance.reason,
-        level: 'L0',
-        status: 'active',
+        row_number: i + 1,
+        data: {
+          name,
+          url: normalizedUrl,
+          platform_key: platformKey,
+          connector_key: connectorKey,
+          surface: 'default',
+          category,
+          audience_tags: tags,
+          language,
+          est_audience: estAudience,
+          relevance_score: relevance.score,
+          relevance_reason: relevance.reason,
+          level: 'L0',
+          status: 'active',
+        },
       });
     }
 
     const importedDestinations: DestinationRecord[] = [];
-    for (const d of toInsert) {
-      const created = await dbRepository.createDestination(d);
+    for (const item of toInsert) {
+      const created = await dbRepository.createDestination(item.data);
       importedDestinations.push(created);
+      rowResults.push({
+        row_number: item.row_number,
+        status: 'imported',
+        name: created.name,
+        url: created.url,
+        platform: created.platform_key,
+        destination_id: created.id,
+        reason: `Successfully imported into catalogue (${created.level})`,
+      });
     }
+
+    rowResults.sort((a, b) => a.row_number - b.row_number);
 
     return {
       import_id: importId,
@@ -197,6 +278,7 @@ export class CsvCatalogueImporter {
       invalid_rows: invalidCount,
       duration_ms: Date.now() - startedAt,
       row_errors: rowErrors,
+      row_results: rowResults,
       imported_destinations: importedDestinations,
     };
   }

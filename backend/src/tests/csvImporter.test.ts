@@ -123,4 +123,45 @@ describe('CsvCatalogueImporter', () => {
     expect(err).toHaveProperty('row_number');
     expect(err).toHaveProperty('reason');
   });
+
+  it('header validation: rejects CSV missing required "name" or "url" header', async () => {
+    const invalidHeaderCsv = 'title_only,platform_key\nMy Site,discourse\n';
+    const result = await csvCatalogueImporter.importCsv(invalidHeaderCsv);
+    expect(result.valid_rows).toBe(0);
+    expect(result.row_errors.length).toBeGreaterThan(0);
+    expect(result.row_errors[0].field).toBe('headers');
+    expect(result.row_errors[0].reason).toContain('missing required column header');
+  });
+
+  it('url validation: rejects non-http/https protocol and malformed URLs', async () => {
+    const badUrlCsv = `name,url,platform_key
+FTP Destination,ftp://files.example.com,discourse
+Malformed Destination,not-a-url-scheme,discourse`;
+    const result = await csvCatalogueImporter.importCsv(badUrlCsv);
+    expect(result.invalid_rows).toBe(2);
+    expect(result.valid_rows).toBe(0);
+    expect(result.row_errors.every((e) => e.field === 'url')).toBe(true);
+  });
+
+  it('row-wise results: returns complete status for every row (imported, duplicate, invalid)', async () => {
+    const mixedCsv = `name,url,platform_key
+Valid Destination,https://valid1.example.com,discourse
+Duplicate Destination,https://valid1.example.com,discourse
+,https://noname.example.com,discourse`;
+    const result = await csvCatalogueImporter.importCsv(mixedCsv);
+    expect(result.total_rows).toBe(3);
+    expect(result.valid_rows).toBe(1);
+    expect(result.duplicate_rows).toBe(1);
+    expect(result.invalid_rows).toBe(1);
+
+    expect(result.row_results).toHaveLength(3);
+    expect(result.row_results[0].status).toBe('imported');
+    expect(result.row_results[0].row_number).toBe(2);
+
+    expect(result.row_results[1].status).toBe('duplicate');
+    expect(result.row_results[1].row_number).toBe(3);
+
+    expect(result.row_results[2].status).toBe('invalid');
+    expect(result.row_results[2].row_number).toBe(4);
+  });
 });
