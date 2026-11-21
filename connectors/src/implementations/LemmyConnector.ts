@@ -82,7 +82,7 @@ export class LemmyConnector extends BaseConnector {
   }
 
   async getStatus(req: StatusRequest): Promise<StatusResult> {
-    const baseUrl = req.connection.base_url || 'http://localhost:4002';
+    const baseUrl = req.connection.base_url || 'http://localhost:3001/mock/lemmy';
     try {
       const res = await fetch(`${baseUrl}/api/v3/post?id=${req.platform_post_id}`);
       if (!res.ok) {
@@ -104,7 +104,7 @@ export class LemmyConnector extends BaseConnector {
   }
 
   async delete(req: DeleteRequest): Promise<DeleteResult> {
-    const baseUrl = req.connection.base_url || 'http://localhost:4002';
+    const baseUrl = req.connection.base_url || 'http://localhost:3001/mock/lemmy';
     const token = req.connection.token || req.connection.api_key;
 
     try {

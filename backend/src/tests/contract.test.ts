@@ -140,12 +140,30 @@ describe('Connector Contract Tests (All 6 Core Connectors)', () => {
       expect(pubRes.status).toBe(200);
       expect(pubRes.body.status).toBe('published');
       const postId = pubRes.body.platform_post_id;
+      const liveUrl = pubRes.body.live_url;
+      expect(liveUrl).toBe(`${baseUrl}/mock/lemmy/post/${postId}`);
+
+      // Verify opening the returned live_url via GET retrieves post details
+      const urlObj = new URL(liveUrl);
+      const viewRes = await request(baseUrl).get(urlObj.pathname);
+      expect(viewRes.status).toBe(200);
+      expect(viewRes.body.id).toBe(Number(postId) || postId);
+      expect(viewRes.body.title).toBe('Lemmy Tech Post');
+      expect(viewRes.body.body).toBe('Decentralized discussion content');
+      expect(viewRes.body.status).toBe('published');
+      expect(viewRes.body.publication_details).toBeDefined();
+      expect(viewRes.body.publication_details.live_url).toBe(liveUrl);
 
       const delRes = await request(app)
         .post('/connector/v1/lemmy/delete')
         .send({ platform_post_id: postId, connection: payload.connection });
       expect(delRes.status).toBe(200);
       expect(delRes.body.deleted).toBe(true);
+
+      // Verify opening the URL after deletion returns 404
+      const afterDelRes = await request(baseUrl).get(urlObj.pathname);
+      expect(afterDelRes.status).toBe(404);
+      expect(afterDelRes.body.status).toBe('deleted');
     });
   });
 

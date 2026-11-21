@@ -99,4 +99,48 @@ describe('Publishing Workflow Integration Tests (/api/v1/publish)', () => {
     expect(decisionsRes.status).toBe(200);
     expect(decisionsRes.body.recent_decisions.length).toBeGreaterThan(0);
   });
+
+  it('publishes to mock Lemmy destination in Simulation Mode and verifies opening returned live_url', async () => {
+    // Re-point dest-lemmy-001 to baseUrl for local test server
+    const lemmyDest = await dbRepository.getDestinationById('dest-lemmy-001');
+    if (lemmyDest) {
+      lemmyDest.url = `${baseUrl}/mock/lemmy`;
+    }
+
+    const payload = {
+      destination_id: 'dest-lemmy-001',
+      rendition: {
+        title: 'Open Source Decentralized Tech Discussion',
+        body: 'Sharing deep insights into federated architecture and open protocols.',
+        tags: ['opensource', 'federation'],
+      },
+      connection: {
+        base_url: `${baseUrl}/mock/lemmy`,
+        token: 'mock_jwt_lemmy',
+      },
+    };
+
+    const pubRes = await request(app)
+      .post('/api/v1/publish')
+      .set('Idempotency-Key', `lemmy-sim-${Date.now()}`)
+      .send(payload);
+
+    expect(pubRes.status).toBe(200);
+    expect(pubRes.body.publish_result.status).toBe('published');
+    const liveUrl = pubRes.body.publish_result.live_url;
+    expect(liveUrl).toBeDefined();
+    expect(liveUrl).toContain('/mock/lemmy/post/');
+
+    // Open the returned URL (extract the path starting from /mock/lemmy/post/...)
+    const urlObj = new URL(liveUrl);
+    const getRes = await request(baseUrl).get(urlObj.pathname);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.id).toBeDefined();
+    expect(getRes.body.title).toBe('Open Source Decentralized Tech Discussion');
+    expect(getRes.body.body).toBe('Sharing deep insights into federated architecture and open protocols.');
+    expect(getRes.body.status).toBe('published');
+    expect(getRes.body.publication_details).toBeDefined();
+    expect(getRes.body.publication_details.live_url).toBe(liveUrl);
+  });
 });

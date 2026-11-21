@@ -1,5 +1,6 @@
 import express, { Request, Response, Router } from 'express';
 import crypto from 'crypto';
+import { dbRepository } from '../database/repository.js';
 
 export interface MockPlatformState {
   discourse: { authExpired: boolean; rateLimited: boolean; unavailable: boolean; timeout: boolean };
@@ -116,8 +117,22 @@ mockRouter.post('/mock/lemmy/api/v3/post', (req: Request, res: Response) => {
   }
 
   const postId = Math.floor(2000 + Math.random() * 8000);
-  const record = { id: postId, name, body, community_id, deleted: false };
+  const host = req.get('host') || 'localhost:3001';
+  const protocol = req.protocol || 'http';
+  const liveUrl = `${protocol}://${host}/mock/lemmy/post/${postId}`;
+  const record = {
+    id: postId,
+    name,
+    title: name,
+    body,
+    community_id: community_id || 1,
+    status: 'published',
+    deleted: false,
+    live_url: liveUrl,
+    created_at: new Date().toISOString(),
+  };
   mockPostsDb.set(`lemmy_${postId}`, record);
+  mockPostsDb.set(String(postId), record);
 
   return res.status(200).json({
     post_view: {
@@ -130,19 +145,118 @@ mockRouter.post('/mock/lemmy/api/v3/post', (req: Request, res: Response) => {
 
 mockRouter.get('/mock/lemmy/api/v3/post', (req: Request, res: Response) => {
   const id = req.query.id as string;
-  const post = mockPostsDb.get(`lemmy_${id}`);
+  const post = mockPostsDb.get(`lemmy_${id}`) || mockPostsDb.get(id);
   if (!post || post.deleted) {
     return res.status(404).json({ error: 'Post not found' });
   }
   return res.status(200).json({ post_view: { post } });
 });
 
+mockRouter.get(['/mock/lemmy/post/:id', '/mock/lemmy/posts/:id'], async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const post = mockPostsDb.get(`lemmy_${id}`) || mockPostsDb.get(id);
+
+  if (post) {
+    if (post.deleted) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: `Mock Lemmy post '${id}' has been deleted`,
+        },
+        status: 'deleted',
+      });
+    }
+
+    const host = req.get('host') || 'localhost:3001';
+    const protocol = req.protocol || 'http';
+    const liveUrl = post.live_url || `${protocol}://${host}/mock/lemmy/post/${id}`;
+
+    return res.status(200).json({
+      id: Number(id) || id,
+      title: post.title || post.name,
+      body: post.body,
+      status: post.status || 'published',
+      publication_details: {
+        id: Number(id) || id,
+        title: post.title || post.name,
+        body: post.body,
+        status: post.status || 'published',
+        community_id: post.community_id || 1,
+        creator: { name: 'lemmy_user' },
+        platform: 'lemmy',
+        created_at: post.created_at || new Date().toISOString(),
+        live_url: liveUrl,
+      },
+      post_view: {
+        post,
+        creator: { name: 'lemmy_user' },
+        community: { name: 'technology' },
+      },
+    });
+  }
+
+  // Fallback to dbRepository in case post was published via DB repository
+  try {
+    const publications = await dbRepository.listPublications();
+    const pub = publications.find(
+      (p) => String(p.platform_post_id) === String(id) || String(p.id) === String(id)
+    );
+    if (pub && pub.status !== 'deleted') {
+      const host = req.get('host') || 'localhost:3001';
+      const protocol = req.protocol || 'http';
+      const liveUrl = pub.live_url || `${protocol}://${host}/mock/lemmy/post/${id}`;
+      return res.status(200).json({
+        id: Number(id) || id,
+        title: pub.title || 'Lemmy Publication',
+        body: pub.body,
+        status: pub.status,
+        publication_details: {
+          id: Number(id) || id,
+          title: pub.title,
+          body: pub.body,
+          status: pub.status,
+          platform: 'lemmy',
+          created_at: pub.created_at,
+          live_url: liveUrl,
+        },
+        post_view: {
+          post: {
+            id: Number(id) || id,
+            name: pub.title,
+            body: pub.body,
+            deleted: false,
+          },
+          creator: { name: 'lemmy_user' },
+          community: { name: 'technology' },
+        },
+      });
+    }
+  } catch {}
+
+  return res.status(404).json({
+    error: {
+      code: 'NOT_FOUND',
+      message: `Mock Lemmy post '${id}' not found`,
+    },
+  });
+});
+
 mockRouter.post('/mock/lemmy/api/v3/post/delete', (req: Request, res: Response) => {
   const { post_id } = req.body;
-  const post = mockPostsDb.get(`lemmy_${post_id}`);
+  const post = mockPostsDb.get(`lemmy_${post_id}`) || mockPostsDb.get(String(post_id));
   if (!post) return res.status(404).json({ error: 'Post not found' });
   post.deleted = true;
+  post.status = 'deleted';
   return res.status(200).json({ post_view: { post } });
+});
+
+mockRouter.delete(['/mock/lemmy/post/:id', '/mock/lemmy/posts/:id'], (req: Request, res: Response) => {
+  const { id } = req.params;
+  const post = mockPostsDb.get(`lemmy_${id}`) || mockPostsDb.get(String(id));
+  if (!post) return res.status(404).json({ error: 'Post not found' });
+  post.deleted = true;
+  post.status = 'deleted';
+  return res.status(200).json({ success: true, status: 'deleted' });
 });
 
 // ==================================================
