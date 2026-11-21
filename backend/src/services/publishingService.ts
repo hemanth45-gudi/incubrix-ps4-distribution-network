@@ -6,6 +6,7 @@ import { idempotencyService } from './idempotency.js';
 import { generateOutputManifest, OutputManifest } from '../utils/manifestGenerator.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
+import { config } from '../config/index.js';
 
 export interface PublishParams {
   destination_id: string;
@@ -92,11 +93,23 @@ export class PublishingService {
     const connectorKey = destination.connector_key;
     const connector = connectorRegistry.get(connectorKey);
 
+    // Provide default mock credentials in simulation mode or for mock routes when none provided
+    const effectiveConnection = { ...connection };
+    if (config.SIMULATION_MODE || destination.url.includes('/mock/')) {
+      if (!effectiveConnection.api_key && !effectiveConnection.token && !effectiveConnection.access_token) {
+        effectiveConnection.api_key = 'mock_api_key';
+        effectiveConnection.token = 'mock_token';
+        effectiveConnection.access_token = 'mock_access_token';
+        effectiveConnection.username = effectiveConnection.username || 'mock_user';
+        effectiveConnection.secret = effectiveConnection.secret || 'mock-webhook-secret-32-bytes-long!';
+      }
+    }
+
     // 5. Connector Spec Validation
     const validation = await connector.validate({
       rendition,
       destination,
-      connection,
+      connection: effectiveConnection,
     });
 
     if (!validation.ok) {
@@ -110,12 +123,25 @@ export class PublishingService {
     }
 
     // 6. Execute Outbound Publication via Connector
-    const publishResult = await connector.publish({
-      rendition,
-      destination,
-      connection,
-      idempotency_key,
-    });
+    let publishResult: PublishResult;
+    const isMockOrLocal = destination.url.includes('localhost') || destination.url.includes('127.0.0.1') || destination.url.includes('/mock/');
+    const hasExplicitAuth = Boolean(connection.api_key || connection.token || connection.access_token);
+
+    if (config.SIMULATION_MODE && !isMockOrLocal && !hasExplicitAuth) {
+      publishResult = {
+        platform_post_id: `sim-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        live_url: `${destination.url.replace(/\/+$/, '')}/p/simulated-${Date.now()}`,
+        status: 'published',
+      };
+      logger.info(`[SIMULATION MODE] Simulated publication generated for destination '${destination.name}' (${destination_id})`);
+    } else {
+      publishResult = await connector.publish({
+        rendition,
+        destination,
+        connection: effectiveConnection,
+        idempotency_key,
+      });
+    }
 
     // 7. Persist Publication Record in Repository
     const publication = await dbRepository.createPublication({

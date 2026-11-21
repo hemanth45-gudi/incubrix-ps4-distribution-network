@@ -471,6 +471,10 @@ function PublishTab() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.destination_id) {
+      setError('Please select a destination');
+      return;
+    }
     setLoading(true); setError(null); setResult(null);
     try {
       const res = await publishContent({

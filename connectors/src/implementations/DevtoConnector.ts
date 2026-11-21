@@ -17,6 +17,11 @@ export class DevtoConnector extends BaseConnector {
     super(manifest);
   }
 
+  private getBaseUrl(req: { connection: { base_url?: string }; destination: { url: string } }): string {
+    const url = req.connection.base_url || req.destination.url || 'https://dev.to';
+    return url.replace(/\/+$/, '');
+  }
+
   async publish(req: PublishRequest): Promise<PublishResult> {
     const validation = await this.validate(req);
     if (!validation.ok) {
@@ -29,7 +34,7 @@ export class DevtoConnector extends BaseConnector {
       );
     }
 
-    const baseUrl = req.connection.base_url || 'https://dev.to';
+    const baseUrl = this.getBaseUrl(req);
     const apiKey = req.connection.api_key || req.connection.token;
 
     const payload = {

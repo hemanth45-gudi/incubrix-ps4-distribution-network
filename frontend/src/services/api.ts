@@ -106,9 +106,16 @@ export const fetchPublications = (): Promise<Publication[]> =>
 // ─── Publish ──────────────────────────────────────────────────
 export interface PublishPayload {
   destination_id: string;
-  title: string;
-  body: string;
-  tags: string[];
+  title?: string;
+  body?: string;
+  tags?: string[];
+  rendition?: {
+    title?: string;
+    body: string;
+    tags?: string[];
+    canonical_url?: string;
+  };
+  connection?: Record<string, unknown>;
   idempotency_key: string;
   async?: boolean;
   callback_url?: string;
@@ -123,12 +130,29 @@ export interface PublishResult {
   message?: string;
 }
 
-export const publishContent = (payload: PublishPayload): Promise<PublishResult> =>
-  apiFetch('/api/v1/publish', {
+export const publishContent = (payload: PublishPayload): Promise<PublishResult> => {
+  const rendition = payload.rendition ?? {
+    title: payload.title,
+    body: payload.body ?? '',
+    tags: payload.tags ?? [],
+  };
+
+  return apiFetch('/api/v1/publish', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': payload.idempotency_key,
+    },
+    body: JSON.stringify({
+      destination_id: payload.destination_id,
+      rendition,
+      connection: payload.connection,
+      idempotency_key: payload.idempotency_key,
+      async: payload.async,
+      callback_url: payload.callback_url,
+    }),
   });
+};
 
 // ─── Rules ────────────────────────────────────────────────────
 export interface RulesEvaluatePayload {

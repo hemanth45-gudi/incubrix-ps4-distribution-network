@@ -107,7 +107,16 @@ apiV1Router.post('/api/v1/publish', async (req: Request, res: Response, next) =>
       throw new AppError('DEST_SPEC_VIOLATION', 'Missing required Idempotency-Key header', false, 400);
     }
 
-    const { destination_id, rendition, connection, async: runAsync, callback_url } = req.body;
+    const destination_id = req.body.destination_id;
+    const rendition = req.body.rendition || (req.body.body !== undefined ? {
+      title: req.body.title,
+      body: req.body.body,
+      tags: Array.isArray(req.body.tags) ? req.body.tags : [],
+      canonical_url: req.body.canonical_url,
+    } : undefined);
+    const connection = req.body.connection;
+    const runAsync = req.body.async;
+    const callback_url = req.body.callback_url;
 
     if (!destination_id || !rendition) {
       throw new AppError('DEST_SPEC_VIOLATION', 'Fields destination_id and rendition are required', false, 400);
