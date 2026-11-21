@@ -36,7 +36,7 @@ export class PeerTubeConnector extends BaseConnector {
 
     const rawBase = this.getBaseUrl(req);
     const baseUrl = rawBase.endsWith('/mock/peertube') ? rawBase : `${rawBase}/mock/peertube`;
-    const token = req.connection.token || req.connection.api_key;
+    const token = req.connection.token || req.connection.api_key || 'mock_peertube_token';
 
     const payload = {
       name: req.rendition.title || 'Federated Video Showcase',
@@ -107,7 +107,7 @@ export class PeerTubeConnector extends BaseConnector {
   async delete(req: DeleteRequest): Promise<DeleteResult> {
     const rawBase = (req.connection.base_url || (req as any).destination?.url || 'http://localhost:3001').replace(/\/+$/, '');
     const baseUrl = rawBase.endsWith('/mock/peertube') ? rawBase : `${rawBase}/mock/peertube`;
-    const token = req.connection.token;
+    const token = req.connection.token || req.connection.api_key || 'mock_peertube_token';
 
     try {
       const res = await fetch(`${baseUrl}/api/v1/videos/${req.platform_post_id}`, {

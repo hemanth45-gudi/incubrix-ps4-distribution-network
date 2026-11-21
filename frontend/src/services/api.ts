@@ -351,9 +351,17 @@ export interface ConnectorInfo {
   description: string;
   capabilities: string[];
   status?: string;
+  tier?: string;
+  version?: string;
+  message?: string;
 }
 
-export const testConnector = (key: string, payload: Record<string, unknown>): Promise<{ valid: boolean; message?: string }> =>
+export const fetchConnectors = (): Promise<ConnectorInfo[]> =>
+  apiFetch<ConnectorInfo[] | { data: ConnectorInfo[] }>('/api/v1/connectors').then((r) =>
+    Array.isArray(r) ? r : (r as { data: ConnectorInfo[] }).data ?? []
+  );
+
+export const testConnector = (key: string, payload: Record<string, unknown>): Promise<{ valid: boolean; ok?: boolean; message?: string }> =>
   apiFetch(`/connector/v1/${key}/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

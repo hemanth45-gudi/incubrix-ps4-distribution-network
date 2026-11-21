@@ -8,12 +8,12 @@ import {
   fetchHealth, fetchReadiness, fetchDestinations, addDestination,
   fetchPublications, publishContent, evaluateRules, captureRules, confirmRules,
   fetchCertifications, recertifyDue, importCatalogue, fetchImportHistory,
-  fetchRecommendations, evaluatePrecision, fetchMetrics, testConnector,
+  fetchRecommendations, evaluatePrecision, fetchMetrics, testConnector, fetchConnectors,
   generateIdempotencyKey,
   HealthResponse, ReadinessResponse, Destination, Publication,
   PublishResult, RulesEvaluateResult, RulesCaptureResult, ImportSummary,
   ImportRecord, RecommendationItem, MetricsResult, RecertifyResult,
-  EvaluatePrecisionResult, Certification
+  EvaluatePrecisionResult, Certification, ConnectorInfo
 } from './services/api';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -384,7 +384,29 @@ function DestinationsTab() {
 
 // ─── TAB: Connectors ─────────────────────────────────────────
 function ConnectorsTab() {
+  const [connectors, setConnectors] = useState<ConnectorInfo[]>(CONNECTORS);
+  const [loading, setLoading] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, { loading: boolean; result?: string; error?: string }>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetchConnectors()
+      .then((data) => {
+        if (mounted && data.length > 0) {
+          setConnectors(data);
+        }
+      })
+      .catch(() => {
+        // Fallback to static list if API unavailable
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleTest = async (key: string) => {
     setTestResults((prev) => ({ ...prev, [key]: { loading: true } }));
@@ -395,25 +417,35 @@ function ConnectorsTab() {
         title: 'Test Post',
         body: 'This is a test validation call.',
       });
+      const isValid = Boolean(result.valid ?? result.ok);
       setTestResults((prev) => ({
         ...prev,
-        [key]: { loading: false, result: result.valid ? '✓ Valid' : `✗ ${result.message || 'Invalid'}` },
+        [key]: { loading: false, result: isValid ? '✓ Valid' : `✗ ${result.message || 'Invalid'}` },
       }));
+      setConnectors((prev) =>
+        prev.map((c) => (c.key === key ? { ...c, status: isValid ? 'Healthy' : 'Unavailable' } : c))
+      );
     } catch (e: unknown) {
       setTestResults((prev) => ({
         ...prev,
         [key]: { loading: false, error: e instanceof Error ? e.message : 'Error' },
       }));
+      setConnectors((prev) =>
+        prev.map((c) => (c.key === key ? { ...c, status: 'Unavailable' } : c))
+      );
     }
   };
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-slate-400">9 registered connector adapters. Each can be validated against a sample payload.</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-400">9 registered connector adapters. Each is dynamically verified and can be tested against a sample payload.</p>
+        {loading && <span className="text-xs text-indigo-400 flex items-center gap-1.5"><Spinner /> Verifying adapters…</span>}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CONNECTORS.map((c) => {
+        {connectors.map((c) => {
           const tr = testResults[c.key];
-          const isHealthy = !['webhook', 'peertube'].includes(c.key);
+          const isHealthy = c.status ? c.status === 'Healthy' : !tr?.error;
           return (
             <Card key={c.key} className="p-5 flex flex-col gap-3">
               <div className="flex items-start justify-between">

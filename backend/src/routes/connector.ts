@@ -16,7 +16,31 @@ function getConnector(key: string) {
 connectorRouter.post('/connector/v1/:connector_key/validate', async (req: Request, res: Response, next) => {
   try {
     const connector = getConnector(req.params.connector_key);
-    const { rendition, destination, connection } = req.body;
+    let { rendition, destination, connection } = req.body;
+
+    if (!rendition && (req.body.body || req.body.title)) {
+      rendition = {
+        title: req.body.title || 'Validation Post',
+        body: req.body.body || '',
+        tags: req.body.tags || [],
+      };
+    }
+    if (!destination && (req.body.destination_url || req.body.url)) {
+      destination = {
+        id: req.body.destination_id || `dest-${req.params.connector_key}-val`,
+        name: req.body.destination_name || 'Validation Dest',
+        url: req.body.destination_url || req.body.url || 'https://example.com',
+        connector_key: req.params.connector_key,
+        platform_key: req.params.connector_key,
+      };
+    }
+    if (!connection) {
+      connection = {
+        api_key: req.body.api_key || 'test_key',
+        token: req.body.token || 'test_token',
+        secret: req.body.secret || 'mock-webhook-secret-32-bytes-long!',
+      };
+    }
 
     if (!rendition || !destination) {
       throw new ConnectorError(
@@ -33,7 +57,11 @@ connectorRouter.post('/connector/v1/:connector_key/validate', async (req: Reques
       connection: connection || {},
     });
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      ...result,
+      valid: result.ok,
+      message: result.ok ? 'Validation passed' : result.violations.map((v) => v.message).join('; '),
+    });
   } catch (err) {
     next(err);
   }

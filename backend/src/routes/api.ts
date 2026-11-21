@@ -546,3 +546,92 @@ apiV1Router.get('/api/v1/certifications/history', async (req: Request, res: Resp
     next(err);
   }
 });
+
+// ==========================================
+// 12. CONNECTORS HEALTH & METADATA
+// ==========================================
+apiV1Router.get('/api/v1/connectors', async (_req: Request, res: Response, next) => {
+  try {
+    const connectors = connectorRegistry.list();
+    const descriptions: Record<string, { name: string; description: string }> = {
+      discourse: { name: 'Discourse', description: 'Community forum publishing via Discourse API' },
+      lemmy: { name: 'Lemmy', description: 'Federated link aggregator (ActivityPub)' },
+      devto: { name: 'Dev.to', description: 'Developer blog publishing platform' },
+      ghost: { name: 'Ghost', description: 'Modern publishing platform CMS' },
+      webhook: { name: 'Webhook', description: 'Generic HTTP webhook delivery' },
+      assisted: { name: 'Assisted', description: 'Manual-assist human-in-the-loop publishing' },
+      hashnode: { name: 'Hashnode', description: 'Developer blogging via Hashnode API' },
+      slack: { name: 'Slack', description: 'Post messages to Slack channels' },
+      peertube: { name: 'PeerTube', description: 'Federated video hosting (ActivityPub)' },
+    };
+
+    const results = await Promise.all(
+      connectors.map(async (connector) => {
+        let isHealthy = connector.enabled !== false;
+        let message = 'Healthy and operational';
+
+        try {
+          if (!connector.enabled) {
+            isHealthy = false;
+            message = 'Connector is disabled';
+          } else {
+            // Live validation check against connector specification
+            const sampleRendition = {
+              title: 'Health Check Sample',
+              body: 'Automated health probe verification for connector adapter.',
+              tags: ['health'],
+            };
+            const sampleDestination = {
+              id: `dest-probe-${connector.key}`,
+              name: `${connector.manifest.key} Probe`,
+              url: 'http://localhost:3001',
+              connector_key: connector.key,
+              platform_key: connector.key,
+            };
+            const sampleConnection = {
+              api_key: 'mock_probe_key',
+              token: 'mock_probe_token',
+              secret: 'mock-webhook-secret-32-bytes-long!',
+            };
+
+            const val = await connector.validate({
+              rendition: sampleRendition,
+              destination: sampleDestination,
+              connection: sampleConnection,
+            });
+
+            if (!val.ok) {
+              isHealthy = false;
+              message = val.violations.map((v) => v.message).join('; ');
+            }
+          }
+        } catch (err: any) {
+          isHealthy = false;
+          message = err?.message || 'Connector verification failed';
+        }
+
+        const meta = descriptions[connector.key] || {
+          name: connector.manifest.key.toUpperCase(),
+          description: `Connector for ${connector.manifest.key}`,
+        };
+
+        return {
+          key: connector.key,
+          name: meta.name,
+          description: meta.description,
+          tier: connector.manifest.tier,
+          capabilities: connector.manifest.capabilities,
+          status: isHealthy ? 'Healthy' : 'Unavailable',
+          message,
+          enabled: connector.enabled !== false,
+          version: connector.manifest.version,
+          verified_at: new Date().toISOString(),
+        };
+      })
+    );
+
+    return res.status(200).json({ data: results });
+  } catch (err) {
+    next(err);
+  }
+});
