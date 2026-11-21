@@ -44,6 +44,8 @@ apiV1Router.get('/api/v1/destinations', async (req: Request, res: Response, next
     const filter = {
       platform_key: req.query.platform_key as string,
       status: req.query.status as string,
+      category: req.query.category as string,
+      search: req.query.search as string,
     };
     const list = await dbRepository.listDestinations(filter);
     return res.status(200).json(list);
@@ -54,11 +56,16 @@ apiV1Router.get('/api/v1/destinations', async (req: Request, res: Response, next
 
 apiV1Router.post('/api/v1/destinations', async (req: Request, res: Response, next) => {
   try {
-    const idempotencyKey = req.header('Idempotency-Key');
-    if (!idempotencyKey) {
-      throw new AppError('DEST_SPEC_VIOLATION', 'Missing required Idempotency-Key header', false, 400);
+    const idempotencyKey = (req.header('Idempotency-Key') || req.body.idempotency_key || `dest-key-${Date.now()}`) as string;
+    const { name, url, platform_key } = req.body;
+    if (!name || !url) {
+      throw new AppError('DEST_SPEC_VIOLATION', 'Fields name and url are required for destination creation', false, 400);
     }
-    const created = await dbRepository.createDestination(req.body);
+    const created = await dbRepository.createDestination({
+      ...req.body,
+      platform_key: platform_key || 'discourse',
+      connector_key: req.body.connector_key || platform_key || 'discourse',
+    });
     return res.status(201).json(created);
   } catch (err) {
     next(err);
@@ -409,7 +416,16 @@ apiV1Router.post('/api/v1/catalogue/import', async (req: Request, res: Response,
     }
 
     const result = await csvCatalogueImporter.importCsv(csvContent, filename);
+    const now = new Date();
+    const formattedErrors = (result.row_errors || []).map((re) => ({
+      row: re.row_number,
+      error: re.reason,
+      url: re.url,
+      field: re.field,
+    }));
+
     importHistory.unshift({
+      id: result.import_id,
       import_id: result.import_id,
       filename: result.filename,
       total_rows: result.total_rows,
@@ -417,10 +433,15 @@ apiV1Router.post('/api/v1/catalogue/import', async (req: Request, res: Response,
       duplicate_rows: result.duplicate_rows,
       invalid_rows: result.invalid_rows,
       duration_ms: result.duration_ms,
-      imported_at: new Date(),
+      imported_at: now,
+      created_at: now.toISOString(),
+      errors: formattedErrors,
     });
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      ...result,
+      errors: formattedErrors,
+    });
   } catch (err) {
     next(err);
   }
@@ -439,9 +460,10 @@ apiV1Router.get('/api/v1/catalogue/imports', async (_req: Request, res: Response
 // ==========================================
 apiV1Router.post('/api/v1/rules/capture', async (req: Request, res: Response, next) => {
   try {
-    const { source_text, source_url, destination_id } = req.body;
+    const source_text = req.body.source_text || req.body.policy_text;
+    const { source_url, destination_id } = req.body;
     if (!source_text && !source_url) {
-      throw new AppError('DEST_SPEC_VIOLATION', 'Either source_text or source_url is required', false, 400);
+      throw new AppError('DEST_SPEC_VIOLATION', 'Either source_text (or policy_text) or source_url is required', false, 400);
     }
 
     const draft = await aiRuleCaptureService.captureRules({
@@ -450,7 +472,45 @@ apiV1Router.post('/api/v1/rules/capture', async (req: Request, res: Response, ne
       destination_id,
     });
 
-    return res.status(201).json(draft);
+    const ex = draft.extracted_rules;
+    const draftRules = [
+      {
+        id: `${draft.draft_id}-fc`,
+        rule_text: `Frequency Cap: Maximum ${ex.frequency_cap.max_posts} post(s) per ${ex.frequency_cap.window_days} day(s)`,
+        confidence: ex.confidence,
+        evidence: ex.evidence.find((e) => e.includes('posting frequency') || e.includes('rate limit')) || ex.evidence[0] || 'Extracted frequency limit',
+      },
+      {
+        id: `${draft.draft_id}-sp`,
+        rule_text: `Self-Promotion Policy: ${ex.self_promo_allowed ? 'Permitted' : 'Strictly prohibited / ratio enforced'}`,
+        confidence: ex.confidence,
+        evidence: ex.evidence.find((e) => e.includes('self-promotion') || e.includes('promoting')) || 'Self promotion policy',
+      },
+      {
+        id: `${draft.draft_id}-lp`,
+        rule_text: `Link Policy: ${ex.link_policy.replace('_', ' ').toUpperCase()}`,
+        confidence: ex.confidence,
+        evidence: ex.evidence.find((e) => e.includes('link') || e.includes('hyperlink')) || 'External link policy',
+      },
+      {
+        id: `${draft.draft_id}-ai`,
+        rule_text: `AI Disclosure: ${ex.disclosure_required ? 'Required for all AI-generated content' : 'Not explicitly required'}`,
+        confidence: ex.confidence,
+        evidence: ex.evidence.find((e) => e.includes('AI') || e.includes('artificial')) || 'AI disclosure policy',
+      },
+      {
+        id: `${draft.draft_id}-auto`,
+        rule_text: `Automation: ${ex.automation_allowed ? 'Automated API publishing allowed' : 'Prohibited: manual submission only'}`,
+        confidence: ex.confidence,
+        evidence: ex.evidence.find((e) => e.includes('bot') || e.includes('automated')) || 'Bot / automation guidelines',
+      },
+    ];
+
+    return res.status(201).json({
+      ...draft,
+      capture_id: draft.draft_id,
+      draft_rules: draftRules,
+    });
   } catch (err) {
     next(err);
   }
@@ -458,9 +518,15 @@ apiV1Router.post('/api/v1/rules/capture', async (req: Request, res: Response, ne
 
 apiV1Router.post('/api/v1/rules/confirm', async (req: Request, res: Response, next) => {
   try {
-    const { draft_id, confirmed, reviewed_by, overrides } = req.body;
+    const draft_id = req.body.draft_id || req.body.capture_id;
+    const { confirmed, reviewed_by, overrides, destination_id } = req.body;
     if (!draft_id || typeof confirmed !== 'boolean') {
-      throw new AppError('DEST_SPEC_VIOLATION', 'draft_id and boolean confirmed flag are required', false, 400);
+      throw new AppError('DEST_SPEC_VIOLATION', 'draft_id (or capture_id) and boolean confirmed flag are required', false, 400);
+    }
+
+    const draft = aiRuleCaptureService.getDraft(draft_id);
+    if (draft && destination_id && !draft.destination_id) {
+      draft.destination_id = destination_id;
     }
 
     const result = await aiRuleCaptureService.confirmRules({
@@ -470,7 +536,14 @@ apiV1Router.post('/api/v1/rules/confirm', async (req: Request, res: Response, ne
       overrides,
     });
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      message: confirmed
+        ? (result.updated_destination
+          ? `Rules confirmed and applied to destination '${result.updated_destination.name}'`
+          : 'Rules confirmed successfully')
+        : 'Rules draft rejected',
+      ...result,
+    });
   } catch (err) {
     next(err);
   }
@@ -522,7 +595,11 @@ apiV1Router.post('/api/v1/recommendations', async (req: Request, res: Response, 
       limit ? parseInt(String(limit), 10) : 10
     );
 
-    return res.status(200).json(recommendations);
+    return res.status(200).json({
+      recommendations,
+      data: recommendations,
+      count: recommendations.length,
+    });
   } catch (err) {
     next(err);
   }

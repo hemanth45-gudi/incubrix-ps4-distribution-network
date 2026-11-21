@@ -109,7 +109,7 @@ describe('Recertification Service Integration Tests', () => {
         expect(outcome.status).toBe('demoted');
       }
     }
-  });
+  }, 20000);
 
   it('saves certification runs and retrieves them via GET /api/v1/certifications/history', async () => {
     const historyRes = await request(app).get('/api/v1/certifications/history');

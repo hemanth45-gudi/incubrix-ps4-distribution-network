@@ -1,5 +1,6 @@
 import { prisma } from './client.js';
 import { logger } from '../utils/logger.js';
+import { relevanceScorer } from '../recommender/relevanceScorer.js';
 
 export interface DestinationRecord {
   id: string;
@@ -342,6 +343,292 @@ class MemoryStore {
         created_at: new Date(),
         updated_at: new Date(),
       },
+      {
+        id: 'dest-huggingface-001',
+        name: 'Hugging Face Community Hub',
+        url: 'http://localhost:3001/mock/discourse',
+        platform_key: 'discourse',
+        surface: 'topic',
+        category: 'ai',
+        audience_tags: ['ai', 'developers', 'saas', 'machine-learning'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 180000,
+        rules_url: 'https://discuss.huggingface.co/about',
+        frequency_cap: { max_posts: 4, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'discourse',
+        relevance_score: 5.0,
+        relevance_reason: 'Flagship community for transformer models and open ML research',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-openai-001',
+        name: 'OpenAI Developer Forum',
+        url: 'http://localhost:3001/mock/discourse',
+        platform_key: 'discourse',
+        surface: 'topic',
+        category: 'ai',
+        audience_tags: ['ai', 'developers', 'saas', 'llm'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 250000,
+        rules_url: 'https://community.openai.com/faq',
+        frequency_cap: { max_posts: 3, window_days: 7 },
+        self_promo_allowed: false,
+        link_policy: 'allowed',
+        disclosure_required: true,
+        automation_allowed: true,
+        connector_key: 'discourse',
+        relevance_score: 5.0,
+        relevance_reason: 'Premier forum for generative AI, GPT APIs, and autonomous agents',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-fastai-001',
+        name: 'Fast.ai Community Forum',
+        url: 'http://localhost:3001/mock/discourse',
+        platform_key: 'discourse',
+        surface: 'topic',
+        category: 'ai',
+        audience_tags: ['ai', 'developers', 'deep-learning'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 95000,
+        rules_url: 'https://forums.fast.ai/guidelines',
+        frequency_cap: { max_posts: 3, window_days: 7 },
+        self_promo_allowed: false,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'discourse',
+        relevance_score: 4.8,
+        relevance_reason: 'Dedicated deep learning practitioner community',
+        level: 'L3',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-pytorch-001',
+        name: 'PyTorch Discussion Forum',
+        url: 'http://localhost:3001/mock/discourse',
+        platform_key: 'discourse',
+        surface: 'topic',
+        category: 'ai',
+        audience_tags: ['ai', 'developers', 'software', 'pytorch'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 140000,
+        rules_url: 'https://discuss.pytorch.org/guidelines',
+        frequency_cap: { max_posts: 3, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'discourse',
+        relevance_score: 4.9,
+        relevance_reason: 'Official discussion platform for PyTorch AI infrastructure',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-wandb-001',
+        name: 'Weights & Biases Community',
+        url: 'http://localhost:3001/mock/discourse',
+        platform_key: 'discourse',
+        surface: 'topic',
+        category: 'ai',
+        audience_tags: ['ai', 'developers', 'mlops', 'data-science'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 65000,
+        rules_url: 'https://community.wandb.ai/guidelines',
+        frequency_cap: { max_posts: 4, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'discourse',
+        relevance_score: 4.7,
+        relevance_reason: 'MLOps, experiment tracking and developer forum',
+        level: 'L3',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-roboflow-001',
+        name: 'Roboflow Computer Vision Hub',
+        url: 'http://localhost:3001/mock/discourse',
+        platform_key: 'discourse',
+        surface: 'topic',
+        category: 'ai',
+        audience_tags: ['ai', 'developers', 'creators', 'vision'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 45000,
+        rules_url: 'https://discuss.roboflow.com/faq',
+        frequency_cap: { max_posts: 5, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'discourse',
+        relevance_score: 4.6,
+        relevance_reason: 'Developer discussions on computer vision and datasets',
+        level: 'L3',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-indiehackers-001',
+        name: 'Indie Hackers Milestone Forum',
+        url: 'http://localhost:3001/mock/webhook/receiver',
+        platform_key: 'webhook',
+        surface: 'payload',
+        category: 'founders',
+        audience_tags: ['founders', 'saas', 'marketing', 'bootstrapped'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 190000,
+        rules_url: 'https://www.indiehackers.com/rules',
+        frequency_cap: { max_posts: 3, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'webhook',
+        relevance_score: 4.9,
+        relevance_reason: 'Premier community for bootstrapping founders and SaaS creators',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-saastr-001',
+        name: 'SaaStr Annual Community',
+        url: 'http://localhost:3001/mock/webhook/receiver',
+        platform_key: 'webhook',
+        surface: 'payload',
+        category: 'founders',
+        audience_tags: ['founders', 'saas', 'marketing'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 120000,
+        rules_url: 'https://community.saastr.com/terms',
+        frequency_cap: { max_posts: 2, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'webhook',
+        relevance_score: 4.8,
+        relevance_reason: 'B2B SaaS founders, operators and executive network',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-producthunt-001',
+        name: 'Product Hunt Maker Discussion',
+        url: 'http://localhost:3001/mock/webhook/receiver',
+        platform_key: 'webhook',
+        surface: 'payload',
+        category: 'marketing',
+        audience_tags: ['creators', 'founders', 'marketing', 'saas'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 350000,
+        rules_url: 'https://www.producthunt.com/rules',
+        frequency_cap: { max_posts: 2, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: true,
+        automation_allowed: true,
+        connector_key: 'webhook',
+        relevance_score: 4.9,
+        relevance_reason: 'High-visibility launchpad and creator community',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-hashnode-ai-001',
+        name: 'Hashnode AI & Machine Learning Hub',
+        url: 'http://localhost:3001/mock/hashnode',
+        platform_key: 'hashnode',
+        surface: 'publication',
+        category: 'ai',
+        audience_tags: ['ai', 'saas', 'creators', 'developers'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 75000,
+        rules_url: 'https://hashnode.com/guidelines',
+        frequency_cap: { max_posts: 5, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'canonical_only',
+        disclosure_required: false,
+        automation_allowed: true,
+        connector_key: 'hashnode',
+        relevance_score: 4.8,
+        relevance_reason: 'Targeted AI publication stream with developer readership',
+        level: 'L4',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        id: 'dest-peertube-creators-001',
+        name: 'PeerTube Creator Commons',
+        url: 'http://localhost:3001/mock/peertube',
+        platform_key: 'peertube',
+        surface: 'channel',
+        category: 'video',
+        audience_tags: ['video', 'creators', 'open-source', 'media'],
+        language: 'en',
+        geo: 'global',
+        est_audience: 55000,
+        rules_url: 'https://peertube.example.org/creators/terms',
+        frequency_cap: { max_posts: 4, window_days: 7 },
+        self_promo_allowed: true,
+        link_policy: 'allowed',
+        disclosure_required: true,
+        automation_allowed: true,
+        connector_key: 'peertube',
+        relevance_score: 4.7,
+        relevance_reason: 'Independent open video network for technology creators',
+        level: 'L3',
+        status: 'active',
+        last_certified_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
     ];
 
     for (const d of defaults) {
@@ -385,12 +672,18 @@ export class DatabaseRepository {
     return memoryStore.destinations.get(id) || null;
   }
 
-  async listDestinations(filter?: { platform_key?: string; status?: string }): Promise<DestinationRecord[]> {
+  async listDestinations(filter?: {
+    platform_key?: string;
+    status?: string;
+    category?: string;
+    search?: string;
+  }): Promise<DestinationRecord[]> {
     if (this.isPostgresAvailable) {
       try {
         const where: any = {};
         if (filter?.platform_key) where.platform_key = filter.platform_key;
         if (filter?.status) where.status = filter.status;
+        if (filter?.category) where.category = filter.category;
         const list = await prisma.destination.findMany({ where });
         return list as any;
       } catch {
@@ -400,24 +693,53 @@ export class DatabaseRepository {
 
     let list = Array.from(memoryStore.destinations.values());
     if (filter?.platform_key) {
-      list = list.filter((d) => d.platform_key === filter.platform_key);
+      list = list.filter((d) => d.platform_key.toLowerCase() === filter.platform_key!.toLowerCase());
     }
     if (filter?.status) {
-      list = list.filter((d) => d.status === filter.status);
+      list = list.filter((d) => d.status.toLowerCase() === filter.status!.toLowerCase());
+    }
+    if (filter?.category) {
+      list = list.filter((d) => (d.category || '').toLowerCase() === filter.category!.toLowerCase());
+    }
+    if (filter?.search) {
+      const q = filter.search.toLowerCase();
+      list = list.filter((d) =>
+        d.name.toLowerCase().includes(q) ||
+        d.url.toLowerCase().includes(q) ||
+        (d.audience_tags || []).some((t) => t.toLowerCase().includes(q))
+      );
     }
     return list;
   }
 
   async createDestination(data: Partial<DestinationRecord>): Promise<DestinationRecord> {
     const id = data.id || `dest-${Date.now()}`;
+    const tags = data.audience_tags || [];
+    const name = data.name || 'Unnamed Destination';
+    const category = data.category || null;
+    const url = data.url || 'http://localhost';
+
+    let relScore = data.relevance_score;
+    let relReason = data.relevance_reason;
+    if (relScore === undefined) {
+      const scored = relevanceScorer.score({
+        name,
+        category: category || undefined,
+        audience_tags: tags,
+        url,
+      });
+      relScore = scored.score;
+      relReason = scored.reason;
+    }
+
     const record: DestinationRecord = {
       id,
-      name: data.name || 'Unnamed Destination',
-      url: data.url || 'http://localhost',
+      name,
+      url,
       platform_key: data.platform_key || 'discourse',
       surface: data.surface || 'default',
-      category: data.category || null,
-      audience_tags: data.audience_tags || [],
+      category,
+      audience_tags: tags,
       language: data.language || 'en',
       geo: data.geo || null,
       est_audience: data.est_audience || null,
@@ -428,11 +750,11 @@ export class DatabaseRepository {
       disclosure_required: data.disclosure_required ?? false,
       automation_allowed: data.automation_allowed ?? true,
       connector_key: data.connector_key || data.platform_key || 'discourse',
-      relevance_score: data.relevance_score || 3.0,
-      relevance_reason: data.relevance_reason || null,
-      level: data.level || 'L0',
+      relevance_score: relScore,
+      relevance_reason: relReason || null,
+      level: data.level || 'L1',
       status: data.status || 'active',
-      last_certified_at: data.last_certified_at || null,
+      last_certified_at: data.last_certified_at !== undefined ? data.last_certified_at : new Date(),
       created_at: new Date(),
       updated_at: new Date(),
     };

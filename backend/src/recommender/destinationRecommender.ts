@@ -16,7 +16,9 @@ export interface RecommendationResult {
   score: number; // 0 to 100
   destination_id: string;
   destination_name: string;
+  name?: string;
   platform_key: string;
+  platform?: string;
   category?: string | null;
   reasons: string[];
   warnings: string[];
@@ -26,6 +28,8 @@ export interface RecommendationResult {
 export interface PrecisionEvalCase {
   case_id: string;
   name: string;
+  query?: string;
+  precision?: number;
   precision_at_10: number;
   top_10_destinations: string[];
   relevant_count: number;
@@ -142,7 +146,9 @@ export class DestinationRecommender {
       score: item.score,
       destination_id: item.dest.id,
       destination_name: item.dest.name,
+      name: item.dest.name,
       platform_key: item.dest.platform_key,
+      platform: item.dest.platform_key,
       category: item.dest.category,
       reasons: item.reasons,
       warnings: item.warnings,
@@ -206,6 +212,8 @@ export class DestinationRecommender {
       evalCases.push({
         case_id: testCase.id,
         name: testCase.name,
+        query: testCase.name,
+        precision: pAt10,
         precision_at_10: pAt10,
         top_10_destinations: top10.map((r) => r.destination_name),
         relevant_count: relevantCount,

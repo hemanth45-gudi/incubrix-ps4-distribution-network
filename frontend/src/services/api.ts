@@ -83,7 +83,10 @@ export interface AddDestinationPayload {
 export const addDestination = (payload: AddDestinationPayload): Promise<Destination> =>
   apiFetch('/api/v1/destinations', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': generateIdempotencyKey(),
+    },
     body: JSON.stringify(payload),
   });
 
@@ -316,11 +319,11 @@ export interface RecommendationsResult {
 }
 
 export const fetchRecommendations = (payload: RecommendationsPayload): Promise<RecommendationsResult> =>
-  apiFetch('/api/v1/recommendations', {
+  apiFetch<RecommendationsResult | RecommendationItem[]>('/api/v1/recommendations', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  });
+  }).then((r) => (Array.isArray(r) ? { recommendations: r } : r));
 
 export interface EvaluatePrecisionResult {
   average_precision_at_10: number;
