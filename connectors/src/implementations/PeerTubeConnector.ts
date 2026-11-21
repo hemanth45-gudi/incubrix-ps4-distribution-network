@@ -34,7 +34,8 @@ export class PeerTubeConnector extends BaseConnector {
       );
     }
 
-    const baseUrl = this.getBaseUrl(req);
+    const rawBase = this.getBaseUrl(req);
+    const baseUrl = rawBase.endsWith('/mock/peertube') ? rawBase : `${rawBase}/mock/peertube`;
     const token = req.connection.token || req.connection.api_key;
 
     const payload = {
@@ -45,7 +46,7 @@ export class PeerTubeConnector extends BaseConnector {
     };
 
     try {
-      const res = await fetch(`${baseUrl}/mock/peertube/api/v1/videos`, {
+      const res = await fetch(`${baseUrl}/api/v1/videos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,9 +83,10 @@ export class PeerTubeConnector extends BaseConnector {
   }
 
   async getStatus(req: StatusRequest): Promise<StatusResult> {
-    const baseUrl = req.connection.base_url || 'http://localhost:3001';
+    const rawBase = (req.connection.base_url || (req as any).destination?.url || 'http://localhost:3001').replace(/\/+$/, '');
+    const baseUrl = rawBase.endsWith('/mock/peertube') ? rawBase : `${rawBase}/mock/peertube`;
     try {
-      const res = await fetch(`${baseUrl}/mock/peertube/api/v1/videos/${req.platform_post_id}`);
+      const res = await fetch(`${baseUrl}/api/v1/videos/${req.platform_post_id}`);
       if (!res.ok) {
         if (res.status === 404) return { status: 'deleted', live_url: '' };
         const errCode = mapPlatformStatusToErrorCode(res.status, this.manifest.error_map);
@@ -103,11 +105,12 @@ export class PeerTubeConnector extends BaseConnector {
   }
 
   async delete(req: DeleteRequest): Promise<DeleteResult> {
-    const baseUrl = req.connection.base_url || 'http://localhost:3001';
+    const rawBase = (req.connection.base_url || (req as any).destination?.url || 'http://localhost:3001').replace(/\/+$/, '');
+    const baseUrl = rawBase.endsWith('/mock/peertube') ? rawBase : `${rawBase}/mock/peertube`;
     const token = req.connection.token;
 
     try {
-      const res = await fetch(`${baseUrl}/mock/peertube/api/v1/videos/${req.platform_post_id}`, {
+      const res = await fetch(`${baseUrl}/api/v1/videos/${req.platform_post_id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token || ''}`,

@@ -83,8 +83,20 @@ export class WebhookConnector extends BaseConnector {
     }
   }
 
+  private resolveBaseUrl(req: { connection: { webhook_url?: string; base_url?: string }; destination?: { url: string } }): string {
+    const target = req.connection.webhook_url || req.connection.base_url || req.destination?.url;
+    if (target) {
+      try {
+        return new URL(target).origin;
+      } catch {
+        return target.replace(/\/+$/, '');
+      }
+    }
+    return 'http://localhost:3001';
+  }
+
   async getStatus(req: StatusRequest): Promise<StatusResult> {
-    const baseUrl = req.connection.webhook_url ? new URL(req.connection.webhook_url).origin : 'http://localhost:4005';
+    const baseUrl = this.resolveBaseUrl(req);
     try {
       const res = await fetch(`${baseUrl}/mock/webhook/events/${req.platform_post_id}`);
       if (!res.ok) {
@@ -104,7 +116,7 @@ export class WebhookConnector extends BaseConnector {
   }
 
   async delete(req: DeleteRequest): Promise<DeleteResult> {
-    const baseUrl = req.connection.webhook_url ? new URL(req.connection.webhook_url).origin : 'http://localhost:4005';
+    const baseUrl = this.resolveBaseUrl(req);
     try {
       const res = await fetch(`${baseUrl}/mock/webhook/events/${req.platform_post_id}`, {
         method: 'DELETE',

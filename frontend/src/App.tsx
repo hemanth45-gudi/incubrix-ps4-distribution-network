@@ -703,14 +703,45 @@ function CertificationTab() {
 
       {recertResult && (
         <Card className="p-5">
-          <p className="text-sm font-semibold text-white mb-3">Recertification Outcomes ({recertResult.processed} processed)</p>
-          <div className="space-y-2">
-            {recertResult.outcomes.map((o, i) => (
-              <div key={i} className="flex items-center gap-3 text-sm">
-                <span className="text-slate-300 flex-1">{o.name} <span className="text-slate-400">({o.platform})</span></span>
-                <Badge label={o.result} color={o.result === 'certified' ? 'green' : o.result === 'demoted' ? 'red' : 'yellow'} />
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-white">
+              Recertification Outcomes ({recertResult.processed ?? recertResult.total_checked ?? recertResult.outcomes.length} processed)
+            </p>
+            <div className="flex items-center gap-2">
+              <Badge label={`${recertResult.certified_count ?? recertResult.outcomes.filter(o => o.result === 'certified' || o.status === 'active' || o.success).length} Certified`} color="green" />
+              <Badge label={`${recertResult.demoted_count ?? recertResult.outcomes.filter(o => o.result === 'demoted' || o.status === 'demoted' || !o.success).length} Demoted`} color="red" />
+            </div>
+          </div>
+          <div className="space-y-3 divide-y divide-slate-800/60">
+            {recertResult.outcomes.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">No destinations required recertification.</p>
+            ) : recertResult.outcomes.map((o, i) => {
+              const name = o.name || o.destination_name || o.destination_id || 'Destination';
+              const platform = o.platform || o.platform_key || '';
+              const isSuccess = o.success ?? (o.result === 'certified' || o.status === 'active' || o.new_status === 'active');
+              const statusLabel = isSuccess ? 'certified' : 'demoted';
+              const reason = o.reason || o.error || (isSuccess ? 'All verification tests passed' : 'Verification failed');
+              const time = o.timestamp || o.certified_at;
+              return (
+                <div key={i} className="pt-2 first:pt-0">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium text-slate-200">
+                      {name} <span className="text-xs text-slate-400 font-normal">({platform})</span>
+                    </span>
+                    <Badge label={statusLabel} color={isSuccess ? 'green' : 'red'} />
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <span className={isSuccess ? 'text-emerald-400' : 'text-rose-400 font-mono text-[11px]'}>{reason}</span>
+                    {o.steps_completed && o.steps_completed.length > 0 && (
+                      <span className="text-slate-500">• Steps: {o.steps_completed.join(' → ')}</span>
+                    )}
+                    {time && (
+                      <span className="text-slate-500">• {new Date(time).toLocaleTimeString()}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}

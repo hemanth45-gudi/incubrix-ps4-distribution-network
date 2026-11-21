@@ -45,6 +45,19 @@ export interface PublicationRecord {
   updated_at: Date;
 }
 
+export interface CertificationRecord {
+  id: string;
+  destination_id: string;
+  destination_name: string;
+  connector_key: string;
+  platform_key: string;
+  success: boolean;
+  status: 'certified' | 'demoted' | string;
+  reason: string;
+  steps_completed: string[];
+  timestamp: Date;
+}
+
 export interface RuleDecisionRecord {
   id: string;
   destination_id: string;
@@ -73,6 +86,7 @@ class MemoryStore {
   publications = new Map<string, PublicationRecord>();
   ruleDecisions: RuleDecisionRecord[] = [];
   jobs = new Map<string, JobRecord>();
+  certificationRuns: CertificationRecord[] = [];
 
   constructor() {
     this.seedDefaultDestinations();
@@ -701,10 +715,82 @@ export class DatabaseRepository {
     return merged;
   }
 
+  async saveCertificationRun(record: Omit<CertificationRecord, 'id'> & { id?: string }): Promise<CertificationRecord> {
+    const certRecord: CertificationRecord = {
+      id: record.id || `cert-run-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      destination_id: record.destination_id,
+      destination_name: record.destination_name,
+      connector_key: record.connector_key,
+      platform_key: record.platform_key,
+      success: record.success,
+      status: record.status,
+      reason: record.reason,
+      steps_completed: record.steps_completed || [],
+      timestamp: record.timestamp || new Date(),
+    };
+
+    memoryStore.certificationRuns.unshift(certRecord);
+
+    if (this.isPostgresAvailable) {
+      try {
+        await prisma.certificationRun.create({
+          data: {
+            id: certRecord.id,
+            destination_id: certRecord.destination_id,
+            connector_key: certRecord.connector_key,
+            status: certRecord.status,
+            is_simulated: false,
+            started_at: certRecord.timestamp,
+            finished_at: certRecord.timestamp,
+            failure_reason: certRecord.success ? null : certRecord.reason,
+          },
+        });
+      } catch {
+        this.isPostgresAvailable = false;
+      }
+    }
+
+    return certRecord;
+  }
+
+  async listCertificationRuns(destinationId?: string): Promise<CertificationRecord[]> {
+    if (this.isPostgresAvailable) {
+      try {
+        const where = destinationId ? { destination_id: destinationId } : {};
+        const runs = await prisma.certificationRun.findMany({
+          where,
+          orderBy: { started_at: 'desc' },
+        });
+        if (runs && runs.length > 0) {
+          return runs.map((r) => ({
+            id: r.id,
+            destination_id: r.destination_id,
+            destination_name: memoryStore.destinations.get(r.destination_id)?.name || r.destination_id,
+            connector_key: r.connector_key,
+            platform_key: memoryStore.destinations.get(r.destination_id)?.platform_key || r.connector_key,
+            success: r.status === 'certified' || r.status === 'active',
+            status: r.status,
+            reason: r.failure_reason || 'All certification steps passed',
+            steps_completed: ['validate', 'publish', 'get_status', 'delete'],
+            timestamp: r.started_at,
+          }));
+        }
+      } catch {
+        this.isPostgresAvailable = false;
+      }
+    }
+
+    if (destinationId) {
+      return memoryStore.certificationRuns.filter((c) => c.destination_id === destinationId);
+    }
+    return [...memoryStore.certificationRuns];
+  }
+
   public clearMemory(): void {
     memoryStore.publications.clear();
     memoryStore.ruleDecisions = [];
     memoryStore.jobs.clear();
+    memoryStore.certificationRuns = [];
     memoryStore.destinations.clear();
     memoryStore.seedDefaultDestinations();
   }

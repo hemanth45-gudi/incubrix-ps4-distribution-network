@@ -536,3 +536,13 @@ apiV1Router.get('/api/v1/certifications', async (_req: Request, res: Response, n
     next(err);
   }
 });
+
+apiV1Router.get('/api/v1/certifications/history', async (req: Request, res: Response, next) => {
+  try {
+    const destinationId = req.query.destination_id as string | undefined;
+    const history = await dbRepository.listCertificationRuns(destinationId);
+    return res.status(200).json(history);
+  } catch (err) {
+    next(err);
+  }
+});

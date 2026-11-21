@@ -228,13 +228,39 @@ export const fetchCertifications = (): Promise<Certification[]> =>
     Array.isArray(r) ? r : (r as { data: Certification[] }).data ?? []
   );
 
-export interface RecertifyResult {
-  processed: number;
-  outcomes: Array<{ name: string; platform: string; result: string; status?: string }>;
+export interface RecertifyOutcomeItem {
+  destination_id?: string;
+  destination_name?: string;
+  name?: string;
+  platform_key?: string;
+  platform?: string;
+  success?: boolean;
+  result?: string;
+  status?: string;
+  new_status?: string;
+  previous_status?: string;
+  reason?: string;
+  error?: string;
+  timestamp?: string;
+  certified_at?: string;
+  steps_completed?: string[];
 }
 
-export const recertifyDue = (): Promise<RecertifyResult> =>
-  apiFetch('/api/v1/certifications/recertify-due', { method: 'POST' });
+export interface RecertifyResult {
+  run_at?: string;
+  total_checked: number;
+  processed: number;
+  certified_count: number;
+  demoted_count: number;
+  outcomes: RecertifyOutcomeItem[];
+}
+
+export const recertifyDue = (forceAll: boolean = true): Promise<RecertifyResult> =>
+  apiFetch('/api/v1/certifications/recertify-due', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ force_all: forceAll }),
+  });
 
 // ─── Catalogue Import ─────────────────────────────────────────
 export interface ImportSummary {
