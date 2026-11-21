@@ -45,6 +45,19 @@ export interface PublicationRecord {
   updated_at: Date;
 }
 
+export interface PublicationMetricRecord {
+  id: string;
+  publication_id: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  clicks: number;
+  saves?: number;
+  watch_time_s?: number;
+  collected_at: Date;
+}
+
 export interface CertificationRecord {
   id: string;
   destination_id: string;
@@ -87,6 +100,7 @@ class MemoryStore {
   ruleDecisions: RuleDecisionRecord[] = [];
   jobs = new Map<string, JobRecord>();
   certificationRuns: CertificationRecord[] = [];
+  metrics = new Map<string, PublicationMetricRecord>();
 
   constructor() {
     this.seedDefaultDestinations();
@@ -786,11 +800,89 @@ export class DatabaseRepository {
     return [...memoryStore.certificationRuns];
   }
 
+  async savePublicationMetrics(data: {
+    publication_id: string;
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    clicks: number;
+    saves?: number;
+    watch_time_s?: number;
+  }): Promise<PublicationMetricRecord> {
+    const record: PublicationMetricRecord = {
+      id: `metric-${data.publication_id}`,
+      publication_id: data.publication_id,
+      views: data.views,
+      likes: data.likes,
+      comments: data.comments,
+      shares: data.shares,
+      clicks: data.clicks,
+      saves: data.saves ?? 0,
+      watch_time_s: data.watch_time_s ?? 0,
+      collected_at: new Date(),
+    };
+
+    if (this.isPostgresAvailable) {
+      try {
+        const prismaRecord = await prisma.publicationMetric.create({
+          data: {
+            publication_id: data.publication_id,
+            views: data.views,
+            likes: data.likes,
+            comments: data.comments,
+            shares: data.shares,
+            clicks: data.clicks,
+            saves: data.saves,
+            watch_time_s: data.watch_time_s,
+          },
+        });
+        const saved: PublicationMetricRecord = {
+          ...prismaRecord,
+          saves: prismaRecord.saves ?? 0,
+          watch_time_s: prismaRecord.watch_time_s ?? 0,
+        };
+        memoryStore.metrics.set(data.publication_id, saved);
+        return saved;
+      } catch {
+        this.isPostgresAvailable = false;
+      }
+    }
+
+    memoryStore.metrics.set(data.publication_id, record);
+    return record;
+  }
+
+  async getPublicationMetrics(publicationId: string): Promise<PublicationMetricRecord | null> {
+    if (this.isPostgresAvailable) {
+      try {
+        const found = await prisma.publicationMetric.findFirst({
+          where: { publication_id: publicationId },
+          orderBy: { collected_at: 'desc' },
+        });
+        if (found) {
+          const rec: PublicationMetricRecord = {
+            ...found,
+            saves: found.saves ?? 0,
+            watch_time_s: found.watch_time_s ?? 0,
+          };
+          memoryStore.metrics.set(publicationId, rec);
+          return rec;
+        }
+      } catch {
+        this.isPostgresAvailable = false;
+      }
+    }
+
+    return memoryStore.metrics.get(publicationId) || null;
+  }
+
   public clearMemory(): void {
     memoryStore.publications.clear();
     memoryStore.ruleDecisions = [];
     memoryStore.jobs.clear();
     memoryStore.certificationRuns = [];
+    memoryStore.metrics.clear();
     memoryStore.destinations.clear();
     memoryStore.seedDefaultDestinations();
   }
